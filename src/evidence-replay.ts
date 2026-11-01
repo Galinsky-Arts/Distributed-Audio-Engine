@@ -20,11 +20,15 @@ export class SignedEvidenceReplayGate {
     contributionCoverage([decision]);
     const now = this.nowMs(); integer(now, 0);
     integer(expiresAtMs, now + 1, now + 86400000);
+    invariant(decision.toMs <= now, 'FUTURE_EVIDENCE_DECISION');
+    // A policy revision must not make a previously spent receipt spendable again.
     const key = canonicalJson({
-      scope: decision.scope, evidenceId: decision.evidenceId, policyVersion: decision.policyVersion
+      scope: decision.scope, evidenceId: decision.evidenceId
     });
     const result = await this.store.claimOnce(key, expiresAtMs);
     invariant(typeof result === 'boolean', 'INVALID_EVIDENCE_STORE_RESULT');
+    const finalNow = this.nowMs(); integer(finalNow, now);
+    invariant(finalNow < expiresAtMs, 'EVIDENCE_CLAIM_EXPIRED');
     return result;
   }
 }

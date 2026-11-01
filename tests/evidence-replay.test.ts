@@ -65,5 +65,26 @@ test('one authenticated qualifying receipt can be atomically claimed only once',
   assert.equal(await gate.consume(qualifying, 3000), true);
   assert.equal(await gate.consume(qualifying, 3000), false);
   assert.equal(claims.size, 1);
+  const revised = evaluateContribution(signed, { ...policy, version: 'v2' }, { fromMs: 1000, toMs: 2000 });
+  assert.equal(await gate.consume(revised, 3000), false, 'policy revisions cannot respent a receipt');
+  assert.equal(claims.size, 1);
+
+  let completeClaim: (() => void) | undefined;
+  const delayed = new SignedEvidenceReplayGate({
+    claimOnce: () => new Promise<boolean>(resolve => { completeClaim = () => resolve(true); })
+  }, () => now);
+  const pending = delayed.consume(qualifying, 3000);
+  now = 3000;
+  completeClaim!();
+  await assert.rejects(pending, /EVIDENCE_CLAIM_EXPIRED/);
+
+  now = 2010;
+  const rollback = new SignedEvidenceReplayGate({
+    claimOnce: async () => { now = 2009; return true; }
+  }, () => now);
+  await assert.rejects(rollback.consume(qualifying, 3000), /INVALID_INTEGER/);
+  now = 1989;
+  await assert.rejects(gate.consume(qualifying, 3000), /FUTURE_EVIDENCE_DECISION/);
+  now = 2010;
   await assert.rejects(gate.consume(qualifying, 2010));
 });
