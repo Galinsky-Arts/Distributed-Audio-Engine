@@ -23,3 +23,20 @@ test('reversed and unsafe bounds and unsupported route kinds reject at configura
   assert.throws(() => new PinnedContributionPolicy({ ...policy, allowedKinds: ['headphones'] as never }), /INVALID_CONTRIBUTION_ROUTES/);
   assert.throws(() => new PinnedContributionPolicy({ ...policy, allowedKinds: ['bluetooth-speaker', 'bluetooth-speaker'] }), /INVALID_CONTRIBUTION_ROUTES/);
 });
+
+
+test('accessor policies cannot validate one safety ceiling and pin another', () => {
+  let reads = 0;
+  const input = { ...policy, get safetyCeilingDbA() { return ++reads === 1 ? 80 : 160; } };
+  assert.throws(() => new PinnedContributionPolicy(input), /CANONICAL_ACCESSOR/);
+  assert.equal(reads, 0, 'untrusted getter must not run');
+});
+test('non-data policy shapes reject instead of broadening the pinned contract', () => {
+  const inherited = Object.assign(Object.create({ minimumDbA: 0 }), policy);
+  assert.throws(() => new PinnedContributionPolicy(inherited), /NON_PLAIN_OBJECT/);
+  const hidden = { ...policy };
+  Object.defineProperty(hidden, 'hidden', { value: 160 });
+  assert.throws(() => new PinnedContributionPolicy(hidden), /NON_ENUMERABLE_CANONICAL_FIELD/);
+  const symbol = { ...policy, [Symbol('gain')]: 160 };
+  assert.throws(() => new PinnedContributionPolicy(symbol), /CANONICAL_SYMBOL/);
+});

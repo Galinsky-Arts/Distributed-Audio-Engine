@@ -1,12 +1,15 @@
 import type { AcceptedAcousticEvidence, ContributionBand, QualifyingInterval } from './evidence.js';
 import { evaluateContribution } from './evidence.js';
-import { finite, identifier, integer, invariant } from './validation.js';
+import { canonicalJson, finite, identifier, integer, invariant } from './validation.js';
 
 /** Immutable, neutral contribution rules. No output gain, rewards or radio semantics. */
 export class PinnedContributionPolicy {
   private readonly policy: ContributionBand;
-  constructor(input: ContributionBand) {
-    invariant(input !== null && typeof input === 'object' &&
+  constructor(value: ContributionBand) {
+    invariant(value !== null && typeof value === 'object', 'INVALID_POLICY_FIELDS');
+    // Reject accessors/prototypes and validate the same detached data we retain.
+    const input = JSON.parse(canonicalJson(value)) as ContributionBand;
+    invariant(
       Object.keys(input).sort().join(',') ===
       'allowedKinds,geometryId,maximumClockUncertaintyMs,maximumUncertaintyDb,measurementWindowMs,minimumDbA,safetyCeilingDbA,version',
       'INVALID_POLICY_FIELDS');
