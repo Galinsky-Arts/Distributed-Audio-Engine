@@ -1,4 +1,4 @@
-# DAE-32  Stable release and maintainer checklist
+# DAE-32 — Stable release and maintainer checklist
 
 This work adds an advisory assessReleaseCandidate that keeps development artifacts and production release explicitly separate. It requires each named GitHub check to be observed as successful against the exact 40-character source SHA, the package's source SHA to match that head, and a separately recorded reproducible package and resolved security findings. Missing, stale, duplicated or different-head checks are not success.
 
@@ -13,3 +13,6 @@ Maintainer verification:
 6. Do not bump stable versions, distribute packages, deploy production services or trigger paid resources based only on an advisory assessment.
 
 No stable release, deployment, hardware field qualification or independent certification is claimed by this development PR.
+
+Evidence inputs are detached plain canonical data. Required-check and report arrays are dense and bounded to 128 entries; each report has an explicit nonempty name, a 40-character source SHA and a supported conclusion. Flags are booleans, artifact source is a SHA or explicit null, and accessors/prototypes/hidden fields are rejected. Malformed input raises a contract error; valid pending, missing, failed, duplicated or different-head reports remain unverified. These structural checks do not authenticate caller-supplied evidence: maintainers must still collect actual provider records.
+
