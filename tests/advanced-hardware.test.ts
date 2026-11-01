@@ -27,3 +27,48 @@ test('BLE presence, unsupported hardware, stale and low-confidence data cannot i
   assert.throws(() => adapter.observe({ ...valid, confidence: 0.2 }, 110), /TRACKING_INCONCLUSIVE/);
   assert.equal(adapter.placements.positionAt('speaker', 110), null);
 });
+
+test('configuration accessors cannot widen the retained confidence policy', () => {
+  let reads = 0;
+  const changing = { ...policy, get minConfidence() { return ++reads === 1 ? 0.9 : 0; } };
+  assert.throws(() => new AdvancedHardwarePositionAdapter(changing, ['uwb']), /CANONICAL_ACCESSOR/);
+  assert.equal(reads, 0);
+  const mutable = { ...policy };
+  const hardware: ('uwb' | 'calibrated-vision')[] = ['uwb'];
+  const adapter = new AdvancedHardwarePositionAdapter(mutable, hardware);
+  mutable.minConfidence = 0;
+  hardware.push('calibrated-vision');
+  adapter.placements.bindTracked('speaker', 'tracker');
+  assert.throws(() => adapter.observe({ ...valid, confidence: 0.2 }, 110), /TRACKING_INCONCLUSIVE/);
+  assert.throws(() => adapter.observe({ ...valid, hardware: 'calibrated-vision' }, 110), /HARDWARE_COORDINATE_UNVERIFIED/);
+});
+test('reports reject accessor and nonplain fields without consuming tracking state', () => {
+  const adapter = new AdvancedHardwarePositionAdapter(policy, ['uwb']);
+  adapter.placements.bindTracked('speaker', 'tracker');
+  let reads = 0;
+  const changing = { ...valid, get sequence() { reads++; return reads; } };
+  assert.throws(() => adapter.observe(changing, 110), /CANONICAL_ACCESSOR/);
+  assert.equal(reads, 0);
+  assert.throws(() => adapter.observe(Object.assign(Object.create({ origin: 'trusted-native-coordinate' }), valid), 110), /NON_PLAIN_OBJECT/);
+  assert.throws(() => adapter.observe({ ...valid, [Symbol('extra')]: true }, 110), /CANONICAL_SYMBOL/);
+  const hidden = Object.defineProperty({ ...valid }, 'extra', { value: true });
+  assert.throws(() => adapter.observe(hidden, 110), /NON_ENUMERABLE_CANONICAL_FIELD/);
+  adapter.observe(valid, 110);
+  assert.equal(adapter.placements.positionAt('speaker', 110)?.position.x, 1);
+});
+test('invalid capability configurations and inconclusive coordinates cannot update placement', () => {
+  for (const capabilities of [[], ['uwb', 'uwb'], ['ble']] as unknown as ('uwb' | 'calibrated-vision')[][]) {
+    assert.throws(() => new AdvancedHardwarePositionAdapter(policy, capabilities), /INVALID_HARDWARE_CAPABILITIES/);
+  }
+  const adapter = new AdvancedHardwarePositionAdapter(policy, ['calibrated-vision']);
+  adapter.placements.bindTracked('speaker', 'tracker');
+  const vision = { ...valid, hardware: 'calibrated-vision' as const };
+  for (const bad of [{ ...vision, atMs: 111 }, { ...vision, uncertaintyMeters: 2 },
+    { ...vision, x: Infinity }, { ...vision, origin: 'unverified-estimate' as const }]) {
+    assert.throws(() => adapter.observe(bad, 110));
+    assert.equal(adapter.placements.positionAt('speaker', 110), null);
+  }
+  adapter.observe(vision, 110);
+  assert.equal(adapter.placements.positionAt('speaker', 110)?.state, 'tracked');
+});
+

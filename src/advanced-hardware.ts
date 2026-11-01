@@ -1,6 +1,6 @@
 import type { PositionObservation, TrackingPolicy } from './placement.js';
 import { PlacementRegistry } from './placement.js';
-import { finite, identifier, integer, invariant } from './validation.js';
+import { canonicalJson, finite, identifier, integer, invariant } from './validation.js';
 
 /** Platform-integrator verified observations only; this class does not authenticate radio hardware. */
 export interface HardwareLocationReport {
@@ -20,6 +20,15 @@ export class AdvancedHardwarePositionAdapter {
   readonly placements: PlacementRegistry;
   private readonly trustedCapabilities: ReadonlySet<string>;
   constructor(policy: TrackingPolicy, supportedHardware: readonly ('uwb' | 'calibrated-vision')[]) {
+    // Validate and retain the same detached data; getters must never change a gate after validation.
+    const config = JSON.parse(canonicalJson({ policy, supportedHardware })) as {
+      policy: TrackingPolicy; supportedHardware: readonly ('uwb' | 'calibrated-vision')[];
+    };
+    policy = config.policy;
+    supportedHardware = config.supportedHardware;
+    invariant(policy && typeof policy === 'object' &&
+      Object.keys(policy).sort().join(',') === 'maxAgeMs,maxUncertaintyMeters,minConfidence',
+      'INVALID_TRACKING_POLICY');
     invariant(Array.isArray(supportedHardware) && supportedHardware.length > 0 &&
       supportedHardware.length <= 2 && new Set(supportedHardware).size === supportedHardware.length &&
       supportedHardware.every(v => v === 'uwb' || v === 'calibrated-vision'),
@@ -27,7 +36,8 @@ export class AdvancedHardwarePositionAdapter {
     this.trustedCapabilities = new Set(supportedHardware);
     this.placements = new PlacementRegistry(policy);
   }
-  observe(report: HardwareLocationReport, nowMs: number): void {
+  observe(value: HardwareLocationReport, nowMs: number): void {
+    const report = JSON.parse(canonicalJson(value)) as HardwareLocationReport;
     invariant(report && typeof report === 'object' &&
       Object.keys(report).sort().join(',') ===
       'atMs,confidence,hardware,objectId,origin,sequence,trackerId,uncertaintyMeters,x,y,z',
@@ -47,3 +57,4 @@ export class AdvancedHardwarePositionAdapter {
     this.placements.observe(observation, nowMs);
   }
 }
+
