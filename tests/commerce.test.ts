@@ -53,3 +53,17 @@ test('commerce transactions roll back errors and reject async callbacks', () => 
   assert.equal(store.transact(scope, state => state.payments.size), 0);
   assert.throws(() => store.transact(scope, () => Promise.resolve(1)), /ASYNC_COMMERCE_TRANSACTION/);
 });
+
+test('provider-compatible 31-minute quotes remain capped by the approved product expiry', async () => {
+  const f = commerceFixture();
+  const extended = { ...product, revision: 2, validUntilMs: 3_600_000 };
+  const engine = new CheckoutEngine(scope, f.rights, f.provider, f.verifier, new MemoryCommerceStore(), 31 * 60_000);
+  engine.registerProduct(manager, extended, 1);
+  const order = await engine.createCheckout(buyer, { checkoutId: 'stripe-compatible', productId: product.id, productRevision: 2, territory: 'US' }, 1000);
+  assert.equal(order.expiresAtMs, 1000 + 31 * 60_000);
+  engine.registerProduct(manager, { ...extended, revision: 3, validUntilMs: 1_500_000 }, 2);
+  f.setResponseId('second-payment');
+  const clipped = await engine.createCheckout(buyer, { checkoutId: 'bounded-product', productId: product.id, productRevision: 3, territory: 'US' }, 1000);
+  assert.equal(clipped.expiresAtMs, 1_500_000);
+  assert.throws(() => new CheckoutEngine(scope, f.rights, f.provider, f.verifier, new MemoryCommerceStore(), 86_400_001));
+});
