@@ -62,3 +62,8 @@ test('authenticated captured evidence yields only bounded non-field-qualified in
     assert.equal(result.toMs, 1990);
   }
 });
+
+test('requested future end is denied even when earlier evidence exists', () => {
+  assert.deepEqual(evaluateCurrentWindow(evidence, policy, {fromMs:1000,toMs:2600}, profile, 2500),
+    {qualified:false,reason:'FUTURE_WINDOW'});
+});

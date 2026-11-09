@@ -20,7 +20,7 @@ export function evaluateCurrentWindow(
     return { qualified: false, reason: 'ROUTE_CHANGED' };
   if (evidence.consentUntilMs <= nowMs)
     return { qualified: false, reason: 'CONSENT_EXPIRED' };
-  if (evidence.toMs > nowMs || bounds.fromMs > nowMs)
+  if (evidence.toMs > nowMs || bounds.toMs > nowMs)
     return { qualified: false, reason: 'FUTURE_WINDOW' };
   return evaluateContribution(evidence, policy, bounds);
 }
