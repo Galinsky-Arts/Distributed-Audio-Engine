@@ -73,7 +73,7 @@ export class CheckoutEngine {
   private readonly scope: IdentityScope; private readonly products = new Map<string, CompleteProduct>();
   private readonly providerId: string; private readonly merchantAccountId: string;
   constructor(scope: IdentityScope, private readonly rights: RightsCatalog, private readonly provider: PaymentProvider, private readonly verifier: PaymentEventVerifier, private readonly store: CommerceStore, private readonly quoteLifetimeMs = 900_000, private readonly webhookMaxAgeMs = 86_400_000) {
-    validateCommerceScope(scope); this.scope = structuredClone(scope); integer(quoteLifetimeMs, 1000, 900_000); integer(webhookMaxAgeMs, 1000, 604_800_000);
+    validateCommerceScope(scope); this.scope = structuredClone(scope); integer(quoteLifetimeMs, 1000, 86_400_000); integer(webhookMaxAgeMs, 1000, 604_800_000);
     invariant(rights.matchesScope(scope), 'COMMERCE_RIGHTS_SCOPE_MISMATCH');
     identifier(provider.providerId); identifier(provider.merchantAccountId); this.providerId = provider.providerId; this.merchantAccountId = provider.merchantAccountId;
   }

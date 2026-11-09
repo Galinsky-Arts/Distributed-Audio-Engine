@@ -23,3 +23,9 @@ Checkout and accounting stores are separate atomic domains. Capturing a settled 
 The Node export supplies `SqliteCommerceStore` and `SqliteAccountingStore`. They use real SQLite `BEGIN IMMEDIATE` transactions, WAL, FULL synchronization, bounded strict JSON snapshots and complete business-field whitelists. Reopen and separate-process settlement tests exercise the actual database. Returned values are detached; throwing callbacks, async callbacks and uncloneable results roll back. Unknown private fields cannot enter these snapshots.
 
 These databases belong to authorized business endpoints. They contain intentionally processed opaque purchase/accounting metadata in plaintext at that recipient; they are not ciphertext-only relay stores. File-backed adapters require an owner-private POSIX directory, reject a final-path symlink and enforce file mode 0600. Platform/disk encryption, backups, deletion/retention, tamper/rollback resistance and actual payment-provider recovery qualification remain deployment work. Snapshots are limited to 1 MiB per scope/domain; exceeding that fails rather than truncating financial records.
+
+Provider-specific quote lifetimes can be configured from one second to 24 hours;
+the default remains 15 minutes. Stripe Checkout needs at least 30 minutes, so its
+adapter uses an explicit 31-minute quote. Product expiry still caps every quote.
+A provider must reject an incompatible remaining lifetime before creating an
+external intent; it must not silently extend an approved quote.
