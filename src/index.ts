@@ -39,3 +39,6 @@ export * from './device-profiles.js';
 export * from './evidence-replay.js';
 
 export * from './evidence-replay-postgres.js';
+export * from './contribution-policy.js';
+export * from './qualifying-window.js';
+export * from './acoustic-adapter.js';
