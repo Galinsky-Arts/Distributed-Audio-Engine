@@ -5,4 +5,6 @@ export { PROTOCOL } from './validation.mjs';
 export { SignalRelayEndpoint } from './relay-endpoint.mjs';
 
 export { DurableSignalController } from './controller.mjs';
+export { queueEncryptedLiveSegment } from './live-publish.mjs';
+export { EndpointLivePublisher } from './live-publisher.mjs';
 export { queueSignalClockProbe, respondSignalClockProbe } from './clock-probe.mjs';
