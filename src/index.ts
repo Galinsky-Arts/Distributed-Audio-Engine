@@ -40,3 +40,4 @@ export * from './live-transport.js';
 export * from './evidence-replay.js';
 export * from './evidence-replay-postgres.js';
 export * from './advanced-hardware.js';
+export * from './release-candidate.js';
