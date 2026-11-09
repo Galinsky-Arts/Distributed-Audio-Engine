@@ -50,7 +50,8 @@
     "src",
     "docs",
     "README.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "migrations"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

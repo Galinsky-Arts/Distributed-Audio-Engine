@@ -130,3 +130,33 @@ test('expiry during ciphertext upload withholds private delivery', async () => {
   assert.equal(privateCalls, 0);
   assert.equal(publisher.snapshot().closed, true);
 });
+
+test('close during an outstanding upload withholds the private key-bearing manifest', async () => {
+  const { first } = await segments();
+  let entered!: () => void, release!: () => void;
+  const ready = new Promise<void>(resolve => { entered = resolve; });
+  let privateCalls = 0;
+  const publisher = new LiveSegmentPublisher({
+    scope, captureId: describeLiveSegment(first).captureId, sampleRate: 8000, channels: 1,
+    readers: ['recipient'], expiresAtMs: 5000, nowMs: () => 1000,
+    upload: async () => { entered(); await new Promise<void>(resolve => { release = resolve; }); },
+    deliverPrivate: async () => { privateCalls++; }
+  });
+  const pending = publisher.publish(first);
+  await ready; publisher.close(); release();
+  await assert.rejects(pending, /CLOSED_OR_BUSY/);
+  assert.equal(privateCalls, 0);
+});
+test('tampered live ciphertext is rejected before relay upload or private delivery', async () => {
+  const { first } = await segments();
+  first.ciphertextChunks[0]![0]! ^= 1;
+  let calls = 0;
+  const publisher = new LiveSegmentPublisher({
+    scope, captureId: describeLiveSegment(first).captureId, sampleRate: 8000, channels: 1,
+    readers: ['recipient'], expiresAtMs: 5000, nowMs: () => 1000,
+    upload: async () => { calls++; }, deliverPrivate: async () => { calls++; }
+  });
+  await assert.rejects(publisher.publish(first));
+  assert.equal(calls, 0);
+  assert.equal(publisher.snapshot().closed, true);
+});

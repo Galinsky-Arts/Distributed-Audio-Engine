@@ -98,10 +98,13 @@ test('concurrent capture, invalid rights and cancellation fail closed without im
   assert.equal(p.publisher.snapshot().published, 0);
   const other = await setup(t);
   const original = other.relay.uploadChunk.bind(other.relay);
+  let entered;
+  const uploading = new Promise(resolve => { entered = resolve; });
   let release;
   const locked = new Promise(resolve => { release = resolve; });
-  other.relay.uploadChunk = async request => { await locked; return original(request); };
+  other.relay.uploadChunk = async request => { entered(); await locked; return original(request); };
   const first = other.publisher.push(0n, Float32Array.from([.2,.2,.2,.2]));
+  await uploading;
   await assert.rejects(other.publisher.push(4n, Float32Array.from([.2])), /CLOSED_OR_BUSY/);
   other.publisher.close(); release();
   await assert.rejects(first, /LIVE_PUBLISH_ABORTED|LIVE_PUBLISHER_CLOSED/);

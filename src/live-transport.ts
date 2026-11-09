@@ -1,6 +1,6 @@
 import type { Scope } from './contracts.js';
 import type { EncryptedLivePcmSegment } from './live-input.js';
-import { validateManifest } from './attachments.js';
+import { EndpointAttachmentReader } from './attachments.js';
 import { describeLiveSegment, LiveSegmentContinuity } from './live-continuity.js';
 import type { LiveSegmentNotice } from './live-continuity.js';
 import { identifier, integer, invariant } from './validation.js';
@@ -62,12 +62,14 @@ export class LiveSegmentPublisher {
     });
     this.continuity = new LiveSegmentContinuity({
       captureId: options.captureId, sampleRate: options.sampleRate,
-      channels: options.channels, initialFrame: options.initialFrame
+      channels: options.channels,
+      ...(options.initialFrame === undefined ? {} : { initialFrame: options.initialFrame })
     });
   }
-  snapshot() { return { closed: this.closed, busy: this.busy, ...this.continuity.snapshot() }; }
+  snapshot() { return { ...this.continuity.snapshot(), closed: this.closed, busy: this.busy }; }
   close(): void { this.closed = true; this.continuity.close(); }
   private assertLive(signal?: AbortSignal): void {
+    invariant(!this.closed, 'LIVE_PUBLISH_CLOSED_OR_BUSY');
     invariant(!signal?.aborted, 'LIVE_PUBLISH_ABORTED');
     const now = this.options.nowMs(); integer(now, this.lastNowMs);
     this.lastNowMs = now;
@@ -79,30 +81,36 @@ export class LiveSegmentPublisher {
     invariant(signal === undefined || signal instanceof AbortSignal, 'LIVE_PUBLISH_SIGNAL');
     invariant(!signal?.aborted, 'LIVE_PUBLISH_ABORTED');
     this.busy = true;
+    let reader: EndpointAttachmentReader | undefined;
     try {
       const notice = describeLiveSegment(segment);
-      const manifest = segment.privateManifest;
+      const manifest = structuredClone(segment.privateManifest);
+      const metadata = structuredClone(segment.privateMetadata);
+      invariant(Array.isArray(segment.ciphertextChunks) && segment.ciphertextChunks.length <= 64,
+        'LIVE_PUBLISH_CHUNK_COUNT');
+      const chunks = [...segment.ciphertextChunks];
       invariant(manifest.tenantId === this.options.scope.tenantId &&
         manifest.application === this.options.scope.application, 'LIVE_PUBLISH_SCOPE_MISMATCH');
-      await validateManifest(manifest, {
+      reader = await EndpointAttachmentReader.open(manifest, {
         tenantId: this.options.scope.tenantId,
         application: this.options.scope.application,
         parentMessageId: notice.parentMessageId
       });
-      invariant(Array.isArray(segment.ciphertextChunks) &&
-        segment.ciphertextChunks.length === manifest.chunkCount &&
-        segment.ciphertextChunks.length <= 64, 'LIVE_PUBLISH_CHUNK_COUNT');
+      invariant(chunks.length === manifest.chunkCount, 'LIVE_PUBLISH_CHUNK_COUNT');
       this.assertLive(signal);
       this.continuity.accept(notice);
-      for (let index = 0; index < segment.ciphertextChunks.length; index++) {
+      for (let index = 0; index < chunks.length; index++) {
         this.assertLive(signal);
-        const chunk = segment.ciphertextChunks[index]!;
+        const chunk = chunks[index]!;
         const expected = Math.min(manifest.chunkSizeBytes,
           manifest.plaintextSizeBytes - index * manifest.chunkSizeBytes) + 16;
         invariant(chunk instanceof Uint8Array && chunk.buffer instanceof ArrayBuffer &&
           chunk.byteLength === expected, 'LIVE_PUBLISH_CHUNK_INVALID');
         const copy = Uint8Array.from(chunk);
         try {
+          const plaintext = await reader.decryptChunk(index, copy);
+          plaintext.fill(0);
+          this.assertLive(signal);
           await this.options.upload(Object.freeze({
             tenantId: this.options.scope.tenantId, application: this.options.scope.application,
             storageObjectId: manifest.storageObjectId, chunkIndex: index,
@@ -113,13 +121,13 @@ export class LiveSegmentPublisher {
       this.assertLive(signal);
       await this.options.deliverPrivate(Object.freeze({
         notice, privateManifest: structuredClone(manifest),
-        privateMetadata: structuredClone(segment.privateMetadata)
+        privateMetadata: metadata
       }), signal);
-      invariant(!signal?.aborted, 'LIVE_PUBLISH_ABORTED');
+      this.assertLive(signal);
       return notice;
     } catch (error) {
       this.close();
       throw error;
-    } finally { this.busy = false; }
+    } finally { reader?.close(); this.busy = false; }
   }
 }
