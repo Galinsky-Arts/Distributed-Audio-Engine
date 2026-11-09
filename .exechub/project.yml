@@ -2,7 +2,7 @@
 project:
   name: Distributed-Audio-Engine
   display_name: Distributed Audio Engine
-  repository: neophilism/Distributed-Audio-Engine
+  repository: Galinsky-Arts/Distributed-Audio-Engine
   status: active-development
 
 roadmap:
