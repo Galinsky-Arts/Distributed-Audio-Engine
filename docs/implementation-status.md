@@ -1,5 +1,32 @@
 # Implementation and evidence status
 
+## Integrated dependency checkpoint — November 9, 2026
+
+The pending live-notice reorder, actual Signal live publication, owned live
+publisher, portable live transport, hardware-coordinate adapter, scale/cache
+qualification and release-assessment sources are integrated together. Replay
+protection and the current contribution evaluators are retained. Live transport
+now compiles with exact optional types, authenticates each encrypted chunk before
+upload, snapshots private descriptors, and withholds the private manifest when a
+publisher is closed during upload. The replay adapter's SQL migration is included
+in the distributable package. A cancellation test now waits for actual upload
+entry instead of racing capture encryption.
+
+On Node 24.19.0, the integrated software rehearsal passed all 12 stages: runner,
+portable checks, Signal/relay types, real Signal endpoint tests, real TLS relay
+tests, production C integration, Signal-to-C, TLS-to-C, registry and status-record
+checks. The portable suite has 306 cases; the Signal suite has 112. Source-bound
+rehearsal evidence was produced from clean commit
+`905860737c1e81288e9d61f9cc444900a0e6ab4a`. Subsequent source reconciliation retains
+the same implementations and incorporates the already-merged replay PR #80;
+hosted CI independently verifies the final integration head before merge.
+
+These are software SDK and transport results. Root/key provisioning, consuming
+applications, vendor financial integrations, actual hardware measurements and
+physical scale qualification are distinct. The release assessor remains advisory;
+no production authorization, stable release or independent certification is
+manufactured by integrating these sources. Older counts below are historical.
+
 ## Current checkpoint: October 13, 2026
 
 PR #56 merged the [atomic endpoint delivery journal](endpoint-journal.md), with all
