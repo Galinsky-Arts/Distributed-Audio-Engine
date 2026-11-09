@@ -37,3 +37,5 @@ export * from './qualifying-window.js';
 export * from './acoustic-adapter.js';
 export * from './live-reorder.js';
 export * from './live-transport.js';
+export * from './evidence-replay.js';
+export * from './evidence-replay-postgres.js';
