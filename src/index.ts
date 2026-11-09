@@ -37,3 +37,5 @@ export * from './live-continuity.js';
 export * from './device-profiles.js';
 
 export * from './contribution-policy.js';
+export * from './qualifying-window.js';
+export * from './acoustic-adapter.js';
