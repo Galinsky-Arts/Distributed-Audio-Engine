@@ -39,3 +39,4 @@ export * from './live-reorder.js';
 export * from './live-transport.js';
 export * from './evidence-replay.js';
 export * from './evidence-replay-postgres.js';
+export * from './advanced-hardware.js';
