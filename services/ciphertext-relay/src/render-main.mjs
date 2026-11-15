@@ -8,9 +8,13 @@ import { decode, invariant, integer } from './records.mjs';
 /** Deploy only to the explicitly authorized Render test service. No endpoint
  * secret, media key or private manifest is provisioned on this process.
  */
+/** The repository moved from neophilism to Galinsky-Arts; only the canonical
+ * repository may launch this service. GitHub owner/repo names are case-insensitive. */
+export const RELAY_STAGING_REPOSITORY = 'Galinsky-Arts/Distributed-Audio-Engine';
 export async function runRenderRelay(env = process.env) {
   invariant(env.RENDER === 'true' && env.RENDER_SERVICE_TYPE === 'web' &&
-    env.DAE_RELAY_MODE === 'render-staging' && env.RENDER_GIT_REPO_SLUG === 'neophilism/Distributed-Audio-Engine',
+    env.DAE_RELAY_MODE === 'render-staging' && typeof env.RENDER_GIT_REPO_SLUG === 'string' &&
+    env.RENDER_GIT_REPO_SLUG.toLowerCase() === RELAY_STAGING_REPOSITORY.toLowerCase(),
     'RELAY_RENDER_STAGING_CONFIGURATION_REQUIRED');
   invariant(typeof env.PORT === 'string' && /^[1-9][0-9]{3,4}$/.test(env.PORT), 'RELAY_RENDER_PORT_REQUIRED');
   const port = Number(env.PORT); integer(port, 1024, 65535);

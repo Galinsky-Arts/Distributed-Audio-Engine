@@ -41,6 +41,10 @@ variables, binds `0.0.0.0:$PORT`, creates an owner-private ephemeral SQLite dire
 and closes connections and storage on shutdown. It never logs configuration,
 bearer tokens, private payloads or database errors.
 
+The launcher accepts only `RENDER_GIT_REPO_SLUG` equal to the canonical
+`Galinsky-Arts/Distributed-Audio-Engine` repository (compared case-insensitively;
+the former `neophilism` slug is refused after the repository transfer).
+
 Set `DAE_RELAY_MODE=render-staging` and `DAE_RELAY_GRANTS_JSON` to a JSON array of:
 
 ```json
@@ -60,6 +64,12 @@ send only these hashes/public addresses to the operator configuration. Supply a
 real future expiry, not the documentation zero. Configure each intended recipient
 with its own active grant. Never copy endpoint vault keys into these settings.
 No paid API or third-party account credential is needed to run the relay itself.
+
+Operator grants are owner-configured. An automated deployment sets
+`DAE_RELAY_GRANTS_JSON=[]`, so the service runs, passes `/healthz` with
+`routingConfigured: false` and refuses every client request with 401 until the
+owner adds hashed grants for real test endpoints. No token is generated or
+stored by the deployment itself.
 
 ## Temporary storage is explicit
 

@@ -111,10 +111,10 @@ test('Render: clock rollback latches readiness failure instead of accepting rene
 });
 test('Render: launcher refuses implicit production, other repositories and malformed operator configuration', async () => {
   const env = { RENDER: 'true', RENDER_SERVICE_TYPE: 'web', DAE_RELAY_MODE: 'render-staging',
-    RENDER_GIT_REPO_SLUG: 'neophilism/Distributed-Audio-Engine', RENDER_EXTERNAL_URL: publicOrigin,
+    RENDER_GIT_REPO_SLUG: 'Galinsky-Arts/Distributed-Audio-Engine', RENDER_EXTERNAL_URL: publicOrigin,
     RENDER_GIT_COMMIT: sourceCommit, PORT: '12345', DAE_RELAY_GRANTS_JSON: '[]' };
   for (const patch of [{ RENDER: '' }, { RENDER_SERVICE_TYPE: 'worker' }, { DAE_RELAY_MODE: 'production' },
-    { RENDER_GIT_REPO_SLUG: 'other/repo' }, { PORT: '0' }, { PORT: '443' }, { PORT: '65536' },
+    { RENDER_GIT_REPO_SLUG: 'other/repo' }, { RENDER_GIT_REPO_SLUG: 'neophilism/Distributed-Audio-Engine' }, { RENDER_GIT_REPO_SLUG: undefined }, { PORT: '0' }, { PORT: '443' }, { PORT: '65536' },
     { PORT: '18012' }, { DAE_RELAY_GRANTS_JSON: '{"secret":"bad"}' }, { DAE_RELAY_GRANTS_JSON: '[' },
     { RENDER_EXTERNAL_URL: 'https://evil.example' }, { RENDER_GIT_COMMIT: '' }])
     await assert.rejects(runRenderRelay({ ...env, ...patch }));
@@ -122,7 +122,7 @@ test('Render: launcher refuses implicit production, other repositories and malfo
 test('Render: launcher boots real SQLite with no default client credential and closes idempotently', async t => {
   const port = await freePort();
   const runtime = await runRenderRelay({ RENDER: 'true', RENDER_SERVICE_TYPE: 'web', DAE_RELAY_MODE: 'render-staging',
-    RENDER_GIT_REPO_SLUG: 'neophilism/Distributed-Audio-Engine', RENDER_EXTERNAL_URL: publicOrigin,
+    RENDER_GIT_REPO_SLUG: 'Galinsky-Arts/Distributed-Audio-Engine', RENDER_EXTERNAL_URL: publicOrigin,
     RENDER_GIT_COMMIT: sourceCommit, PORT: String(port) }); t.after(() => runtime.close());
   assert.equal((await raw(port)).status, 401);
   const probe = await raw(port, { path: '/healthz' }); assert.equal(probe.status, 200);
