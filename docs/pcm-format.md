@@ -67,7 +67,8 @@ The finite input is extended constantly at either edge. This makes one-file edge
 behavior deterministic, but is not a continuous streaming resampler. Do not split
 one continuous signal into independently converted adjacent pieces and claim
 seamless boundary equivalence. Whole bounded assets are the current supported
-unit; streaming history/overlap and live drift adaptation remain separate work.
+unit; for continuous streams with carried history and bounded drift correction use
+the [stream adapters](stream-adapters.md).
 The reported duration error is at most one output sample under the nonempty-file
 rule, not an assertion of physical synchronization.
 
