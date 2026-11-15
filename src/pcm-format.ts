@@ -43,7 +43,8 @@ function allowedKeys(value: object, required: string[], optional: string[]): voi
     required.every(key => Object.hasOwn(value, key)) && Object.values(descriptors).every(d => 'value' in d && d.enumerable),
     'INVALID_PCM_CONVERSION_OPTIONS');
 }
-function channelMatrix(inputChannels: number, target: PcmFormatTarget): number[][] {
+/** Resolve the explicit channel policy shared by offline and streaming adapters. */
+export function resolvePcmChannelMatrix(inputChannels: number, target: PcmFormatTarget): number[][] {
   let rows: readonly (readonly number[])[];
   if (target.channelMatrix !== undefined) rows = target.channelMatrix;
   else if (target.channels === inputChannels)
@@ -78,7 +79,7 @@ export async function convertPcmFormat(source: PcmAudio, target: PcmFormatTarget
   const maxOutputBytes = options.maxOutputBytes ?? MAX_PCM_BYTES;
   const maxOperations = options.maxOperations ?? 250000000;
   integer(maxOutputBytes, 4, MAX_PCM_BYTES); integer(maxOperations, 1, 1000000000);
-  const matrix = channelMatrix(metadata.channels, target);
+  const matrix = resolvePcmChannelMatrix(metadata.channels, target);
   // Integer products remain well below MAX_SAFE_INTEGER under the source cap.
   const frames = Math.max(1, Math.round(metadata.frames * sampleRate / metadata.sampleRate));
   integer(frames, 1);
