@@ -101,6 +101,11 @@ export class IOSAudioSink {
   get horizonMs(): number { return this.maxAheadMs; }
   get pending(): number { return this.voices.size; }
   outputState() { return this.lifecycle.snapshot(); }
+  /** Exact format the native queue currently accepts, or undefined while no route is active. */
+  outputFormat(): { sampleRate: number; channels: number } | undefined {
+    const format = this.format;
+    return format && this.lifecycle.snapshot().state === 'active' ? { sampleRate: format.sampleRate, channels: format.maxChannels } : undefined;
+  }
 
   private observe(): { nowMs: number; hostTimeMs: number } {
     invariant(!this.closed, 'IOS_AUDIO_SINK_CLOSED');

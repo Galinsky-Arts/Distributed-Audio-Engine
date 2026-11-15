@@ -158,6 +158,11 @@ export class StreamingResampler {
     return this.#render(this.#inputFrames, true);
   }
 
+  /** Zero carried plaintext history and end the stream (used when output stops). */
+  dispose(): void {
+    this.#history.fill(0); this.#historyFrames = 0; this.#flushed = true;
+  }
+
   #step(): number { return this.#nominalStep * (1 + this.#appliedPpm * 1e-6); }
 
   #append(input: Float32Array, frames: number): void {

@@ -62,6 +62,49 @@ sink.enqueue(mapper.map(resampler.flush()));                 // end of stream on
 A simulated closed loop converges a 200 ppm sink mismatch to within 60 frames of
 the target fill without a resync. That is a software model only.
 
+## Playback session seam
+
+`AdaptingPcmSink` wraps an exact-format sink (`AndroidAudioSink`, `IOSAudioSink`)
+for `EndpointProgramPlayer`, and `EndpointPlaybackSession` installs it only when
+the application passes `streamAdapter` options. Without the option the native
+`*_RATE_ADAPTER_REQUIRED` / `*_CHANNEL_ADAPTER_REQUIRED` checks apply unchanged.
+
+```ts
+const session = EndpointPlaybackSession.android({ ...options, bridge, native,
+  streamAdapter: { headroom: 0.8, drift: { targetFillFrames: 4800, resyncErrorFrames: 4000 } } });
+// Host reports its native queue fill; tracking adjusts the resampler only.
+const decision = session.observeOutputFill(queuedFrames, monotonicNowMs);
+// resync-required => session stops ('resync-required'); a fresh signed join is needed.
+```
+
+- Conversion happens in the endpoint JavaScript runtime on decrypted, currently
+  authorized PCM, immediately before the native bridge copy. The native sink still
+  applies authority envelopes, deadlines, queue limits and route generation to the
+  converted block; the adapter never grants or extends authority.
+- The format comes from the sink's active route (`outputFormat()`); a route or
+  format change interrupts the session as before and the next join starts a
+  fresh stream.
+- Contiguous player schedules (including clip boundaries at the same input
+  format) are one continuous resampler stream: the converted output is identical
+  to a single conversion of the whole signal (tested), and each native block
+  starts exactly where the previous one ended. The whole stream is delayed by the
+  filter radius plus one frame (`latencyMs`, under 6 ms); the adapter reports a
+  horizon 6 ms below the native sink's so delayed output stays inside it.
+- A time discontinuity, format change, `stopAll` or native truncation starts a
+  fresh stream from silence. On truncation the covered input is rounded up so the
+  next stream cannot overlap queued output.
+- With drift correction, nominal schedule times diverge slowly from timeline
+  time. `scheduleSkewMs` is reported and an absolute skew above
+  `maxScheduleSkewMs` (default 25 ms) stops output with
+  `STREAM_ADAPTER_SCHEDULE_SKEW` rather than drifting silently.
+- Adapter-owned plaintext copies are zeroed after the native bridge copies them,
+  and the resampler history is zeroed (`dispose()`) when a stream ends.
+
+Pending: the shipped Android AudioTrack/JNI and iOS AVAudioEngine hosts do not yet
+emit a queue-fill observation to JavaScript, so `observeOutputFill` must be fed by
+the embedding application. Native-side fill reporting needs device builds and is
+not exercised here.
+
 ## What this does not establish
 
 No physical route latency, Bluetooth/wired delay, acoustic alignment, multi-device

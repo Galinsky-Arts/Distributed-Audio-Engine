@@ -7,6 +7,9 @@ import { AndroidAudioSink } from './android-audio.js';
 import type { AndroidAudioBridge, AndroidSinkOptions } from './android-audio.js';
 import { IOSAudioSink } from './ios-audio.js';
 import type { IOSAudioBridge, IOSSinkOptions } from './ios-audio.js';
+import { AdaptingPcmSink } from './playback-stream-adapter.js';
+import type { PlaybackStreamAdapterOptions } from './playback-stream-adapter.js';
+import type { DriftDecision } from './stream-adapter.js';
 import { integer, invariant } from './validation.js';
 
 export interface PlaybackSessionOptions extends Omit<ProgramPlayerOptions, 'sink'> {
@@ -14,6 +17,9 @@ export interface PlaybackSessionOptions extends Omit<ProgramPlayerOptions, 'sink
   /** A real authenticated E2EE parent decoder is required in an application. */
   decodeControlPayload: ControlPayloadDecoder;
   consentedGainCeiling: number;
+  /** Opt-in endpoint rate/channel/drift adaptation in front of the native sink.
+   * Without it, the native sink's exact-format checks apply unchanged. */
+  streamAdapter?: PlaybackStreamAdapterOptions;
 }
 export type AndroidPlaybackSessionOptions = PlaybackSessionOptions & {
   bridge: AndroidAudioBridge;
@@ -23,7 +29,7 @@ export type IOSPlaybackSessionOptions = PlaybackSessionOptions & {
   bridge: IOSAudioBridge;
   native: Omit<IOSSinkOptions, 'nowUnixMs' | 'onInvalidated'>;
 };
-export type PlaybackSessionStopReason = 'user' | 'output-changed' | 'authority-expired' | 'emergency' | 'failure';
+export type PlaybackSessionStopReason = 'user' | 'output-changed' | 'authority-expired' | 'emergency' | 'failure' | 'resync-required';
 type NativeSink = AndroidAudioSink | IOSAudioSink;
 type SinkFactory = (authority: PlaybackAuthority, invalidate: () => void) => NativeSink;
 
@@ -34,6 +40,7 @@ type SinkFactory = (authority: PlaybackAuthority, invalidate: () => void) => Nat
 export class EndpointPlaybackSession {
   private readonly authority: PlaybackAuthority;
   private readonly sink: NativeSink;
+  private readonly adapter: AdaptingPcmSink | undefined;
   private readonly player: EndpointProgramPlayer;
   private readonly nowUnixMs: () => number;
   private phase: 'idle' | 'authorizing' | 'playing' | 'stopped' | 'closed' = 'idle';
@@ -51,8 +58,11 @@ export class EndpointPlaybackSession {
     this.authority = new PlaybackAuthority(options.controls, options.decodeControlPayload, options.consentedGainCeiling);
     this.authority.mute(true);
     this.sink = createSink(this.authority, () => this.invalidate('output-changed'));
-    try { this.player = new EndpointProgramPlayer({ ...options, sink: this.sink }); }
-    catch (error) { this.sink.close(); throw error; }
+    try {
+      const { streamAdapter, ...playerOptions } = options;
+      this.adapter = streamAdapter ? new AdaptingPcmSink(this.sink, () => this.sink.outputFormat(), streamAdapter) : undefined;
+      this.player = new EndpointProgramPlayer({ ...playerOptions, sink: this.adapter ?? this.sink });
+    } catch (error) { this.sink.close(); throw error; }
   }
   static android(options: AndroidPlaybackSessionOptions): EndpointPlaybackSession {
     return new EndpointPlaybackSession(options, (authority, onInvalidated) =>
@@ -64,7 +74,17 @@ export class EndpointPlaybackSession {
   }
   snapshot() {
     return { phase: this.phase, generation: this.generation, stopReason: this.reason,
-      output: this.sink.outputState(), pendingControls: Number(this.leasePending) + Number(this.emergencyPending) };
+      output: this.sink.outputState(), pendingControls: Number(this.leasePending) + Number(this.emergencyPending),
+      streamAdapter: this.adapter?.state ?? null };
+  }
+  /** Feed the native queue fill (frames) at a host monotonic time. Requires
+   * `streamAdapter.drift`. Tracking adjusts the resampler only; a resync decision
+   * stops output and requires a fresh explicit join. Never skips or stretches. */
+  observeOutputFill(fillFrames: number, monotonicMs: number): DriftDecision {
+    this.requireOpen(); invariant(this.adapter, 'PLAYBACK_SESSION_STREAM_ADAPTER_DISABLED');
+    const decision = this.adapter.observeQueueFill(fillFrames, monotonicMs);
+    if (decision.state === 'resync-required' && this.phase !== 'stopped') this.invalidate('resync-required');
+    return decision;
   }
   private now(): number {
     const now = this.nowUnixMs(); integer(now, this.lastNowMs); this.lastNowMs = now; return now;

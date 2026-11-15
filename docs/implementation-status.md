@@ -1,5 +1,17 @@
 # Implementation and evidence status
 
+## Playback stream-adapter seam — November 15, 2026
+
+`AdaptingPcmSink` connects the stream adapters to the endpoint playback path:
+`EndpointPlaybackSession` accepts opt-in `streamAdapter` options, converts
+decrypted, authorized PCM to the active Android/iOS route format before the
+native bridge copy, and exposes `observeOutputFill` for queue-fill drift control
+with a fail-closed `resync-required` stop ([details](stream-adapters.md#playback-session-seam)).
+Nine new portable tests (325 total) cover passthrough, chunk-invariant continuous
+conversion across schedules, discontinuities, truncation, drift steering, skew
+fail-closed and real session composition. Native hosts still do not report queue
+fill on their own; that remains pending device work.
+
 ## Stream adapter checkpoint — November 15, 2026
 
 `StreamingResampler`, `StreamingChannelMapper` and `DriftController` add continuous,
@@ -81,7 +93,7 @@ consumer checks remain separate gates.
 |---|---|---|
 | Endpoint encryption | Pinned real libsignal parent channel, root-verified peer membership, encrypted atomic vault and bounded delivery journal | Mobile protocol bindings, protected keys/revision floors, account recovery and resolved concrete security/license findings |
 | Audio delivery | Endpoint AES-GCM packaging, authenticated ranges, immutable ciphertext relay chunks, signed controls and current rights checks | Application effect reconciliation, deployed transport, codec/loudness/native format integration |
-| Native playback | Shared C kernel, foreground Android AudioTrack/JNI and iOS AVAudioEngine/Swift hosts; actual system JavaScriptCore audio bridge; [continuous rate/channel/drift adapters](stream-adapters.md) | Android runtime bridge, full endpoint bootstrap/web-crypto/module loading, wiring the stream adapters into each native host and consuming apps |
+| Native playback | Shared C kernel, foreground Android AudioTrack/JNI and iOS AVAudioEngine/Swift hosts; actual system JavaScriptCore audio bridge; [continuous rate/channel/drift adapters](stream-adapters.md) | Android runtime bridge, full endpoint bootstrap/web-crypto/module loading, native-host queue-fill reporting for the session stream adapter, consuming-app adoption |
 | Timing/output evidence | Monotonic timeline checks, challenge-bound conservative intervals, native fades/hard stops and route invalidation | Physical calibration/attribution, audible stop latency, Bluetooth/wired delays, supported-device matrix and six-hour soaks |
 | Business and operations | Scoped rights, immutable checkout, SQLite purchases/accounting/entitlements, sponsorship and observability/evidence primitives | Real provider signatures/APIs/sandbox/dispatch, complete-product/refund fulfillment, durable sponsor adapters, deployed observability and restore/retention/deletion drills |
 | Advanced capabilities | Neutral spatial/mixing primitives, local coordination and bounded ciphertext caches | Resampling/topology/positioning pilots, LAN provisioning, live input and advanced hardware per existing dependencies |
