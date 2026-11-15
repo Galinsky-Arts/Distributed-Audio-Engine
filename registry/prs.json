@@ -16,7 +16,7 @@
   ],
   "schemaVersion": 1,
   "roadmapVersion": 1,
-  "observedAt": "2026-11-09T23:45:50.156Z",
+  "observedAt": "2026-11-15T18:24:37.000Z",
   "units": [
     {
       "id": "DAE-01",
@@ -104,7 +104,8 @@
       "externalDependencies": [],
       "externalPrerequisites": [],
       "contributingPrs": [
-        85
+        85,
+        88
       ]
     },
     {
@@ -206,7 +207,10 @@
       ],
       "dependsOn": [],
       "externalDependencies": [],
-      "externalPrerequisites": []
+      "externalPrerequisites": [],
+      "contributingPrs": [
+        86
+      ]
     },
     {
       "id": "DAE-18",
@@ -271,7 +275,10 @@
       ],
       "dependsOn": [],
       "externalDependencies": [],
-      "externalPrerequisites": []
+      "externalPrerequisites": [],
+      "contributingPrs": [
+        88
+      ]
     },
     {
       "id": "DAE-24",
@@ -381,7 +388,8 @@
       "externalPrerequisites": [],
       "contributingPrs": [
         83,
-        85
+        85,
+        87
       ]
     },
     {
@@ -412,19 +420,49 @@
   ],
   "pullRequests": [
     {
+      "id": 5317715297,
+      "number": 88,
+      "title": "Add continuous rate, channel and drift stream adapters",
+      "url": "https://github.com/Galinsky-Arts/Distributed-Audio-Engine/pull/88",
+      "state": "closed",
+      "draft": false,
+      "createdAt": "2026-11-15T00:13:18Z",
+      "updatedAt": "2026-11-15T00:15:03Z",
+      "closedAt": "2026-11-15T00:15:03Z",
+      "mergedAt": "2026-11-15T00:15:02Z",
+      "headSha": "19095219406af2038ce3867b548b0c4bbee57b54",
+      "baseRef": "main",
+      "mergeCommitSha": "6c5b21d6b8ca456f1e331a4370b8238448ea79d8"
+    },
+    {
+      "id": 5233113416,
+      "number": 87,
+      "title": "Reconcile repository identity and current integrated dependency evidence",
+      "url": "https://github.com/Galinsky-Arts/Distributed-Audio-Engine/pull/87",
+      "state": "closed",
+      "draft": false,
+      "createdAt": "2026-11-09T23:46:53Z",
+      "updatedAt": "2026-11-09T23:52:09Z",
+      "closedAt": "2026-11-09T23:52:08Z",
+      "mergedAt": "2026-11-09T23:52:08Z",
+      "headSha": "73b3cdabd14a3e79e77b4b6b3de35336d17833db",
+      "baseRef": "main",
+      "mergeCommitSha": "532d28a7e479fe25428c315ba415c3722de7b84c"
+    },
+    {
       "id": 5233075411,
       "number": 86,
       "title": "Support bounded provider-specific checkout lifetimes",
       "url": "https://github.com/Galinsky-Arts/Distributed-Audio-Engine/pull/86",
-      "state": "open",
-      "draft": true,
+      "state": "closed",
+      "draft": false,
       "createdAt": "2026-11-09T23:43:09Z",
-      "updatedAt": "2026-11-09T23:43:09Z",
-      "closedAt": null,
-      "mergedAt": null,
+      "updatedAt": "2026-11-09T23:50:38Z",
+      "closedAt": "2026-11-09T23:50:38Z",
+      "mergedAt": "2026-11-09T23:50:38Z",
       "headSha": "57eb947bfce112a87f20ec86fbbbec658163f045",
       "baseRef": "main",
-      "mergeCommitSha": "c3f5555420482f8aae9b22972280e282903123f5"
+      "mergeCommitSha": "feaf485beb25f25ce222b3bc7a57c09392cc57a6"
     },
     {
       "id": 5232403705,

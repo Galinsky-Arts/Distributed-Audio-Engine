@@ -30,6 +30,7 @@ export * from './ios-audio.js';
 export * from './playback-session.js';
 export * from './pcm-format.js';
 export * from './stream-adapter.js';
+export * from './playback-stream-adapter.js';
 export * from './live-input.js';
 export * from './live-continuity.js';
 export * from './device-profiles.js';
