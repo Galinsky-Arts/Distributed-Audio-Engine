@@ -1,6 +1,6 @@
 {
   "version": "2026-10-16-v1",
-  "repository": "neophilism/Distributed-Audio-Engine",
+  "repository": "Galinsky-Arts/Distributed-Audio-Engine",
   "canonicalPlan": "registry/prs.json",
   "milestones": ["DAE-04", "DAE-08", "DAE-22", "DAE-23"],
   "scope": "Explicit managed-edge ciphertext relay test deployment; no production or milestone-completion promotion",
