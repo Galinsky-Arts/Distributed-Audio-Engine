@@ -1,5 +1,19 @@
 # Ciphertext relay test deployment on Render
 
+## Deployment record — November 15, 2026
+
+Deployed to the Galinsky Arts Render workspace as free web service
+`distributed-audio-engine-relay-staging` (`srv-dbsvjne7bikc73ckaqrg`,
+https://distributed-audio-engine-relay-staging.onrender.com), deploy
+`dep-dbsvjnu7bikc73ckarq0` of commit `c6fd5fa`. The build ran the relay suite
+(35/35); the start log reports `listening`, `environment: staging`,
+`storage: ephemeral-sqlite`, `productionReady: false`, and Render's `/healthz`
+probe passed. Auto-deploy is off (manual deploys, as in `render.yaml`).
+`DAE_RELAY_GRANTS_JSON` is `[]`: operator routing grants are owner-configured,
+so every client request is refused until the owner adds hashed grants. No live
+cloud rehearsal or client traffic has been run; `liveCloudRehearsalPassed`
+remains false.
+
 This deploys the actual bounded ciphertext relay, not a status-only mock. It
 stores public prekeys, encrypted signed controls, opaque message packets and
 endpoint-encrypted audio chunks. Media keys, private manifests, ratchet state and
