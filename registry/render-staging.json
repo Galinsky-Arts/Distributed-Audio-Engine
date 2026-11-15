@@ -2,7 +2,12 @@
   "version": "2026-10-16-v1",
   "repository": "Galinsky-Arts/Distributed-Audio-Engine",
   "canonicalPlan": "registry/prs.json",
-  "milestones": ["DAE-04", "DAE-08", "DAE-22", "DAE-23"],
+  "milestones": [
+    "DAE-04",
+    "DAE-08",
+    "DAE-22",
+    "DAE-23"
+  ],
   "scope": "Explicit managed-edge ciphertext relay test deployment; no production or milestone-completion promotion",
   "guide": "docs/render-relay-staging.md",
   "securityInventory": "docs/render-relay-flow.json",
@@ -14,7 +19,26 @@
     "newManagedEdgeNetworkNativeCases": 2,
     "hostedVerification": "Exact-head workflow results required before merge; see the owning PR"
   },
-  "claims": { "deployed": false, "liveCloudRehearsalPassed": false, "durableStorage": false,
-    "mobileConsumerIntegrated": false, "fieldValidated": false, "stableReleased": false, "independentlyReviewed": false },
-  "spending": "Free test service configuration only; no paid plan, disk, worker, scheduler or keepalive loop"
+  "claims": {
+    "deployed": true,
+    "liveCloudRehearsalPassed": false,
+    "durableStorage": false,
+    "mobileConsumerIntegrated": false,
+    "fieldValidated": false,
+    "stableReleased": false,
+    "independentlyReviewed": false
+  },
+  "spending": "Free test service configuration only; no paid plan, disk, worker, scheduler or keepalive loop",
+  "deployment": {
+    "workspace": "tea-dbp1vrrl550s73c3dgrg",
+    "serviceId": "srv-dbsvjne7bikc73ckaqrg",
+    "name": "distributed-audio-engine-relay-staging",
+    "url": "https://distributed-audio-engine-relay-staging.onrender.com",
+    "plan": "free",
+    "deployId": "dep-dbsvjnu7bikc73ckarq0",
+    "sourceCommit": "c6fd5fa6c9a1a5cf3e8a3a72f60f515083661430",
+    "deployedAt": "2026-11-15T18:29:24Z",
+    "grants": "DAE_RELAY_GRANTS_JSON=[] (owner-configured; all client requests return 401 until hashed grants are added)",
+    "verification": "Render deploy status live and startup log {status: listening, environment: staging, storage: ephemeral-sqlite, productionReady: false}; build ran the relay suite (35/35). No client traffic or cloud rehearsal was run."
+  }
 }
