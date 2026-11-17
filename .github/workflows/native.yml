@@ -95,8 +95,11 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
           script: |
+            adb shell svc power stayon true || true
+            adb shell wm dismiss-keyguard || true
             adb shell input keyevent 82 || true
-            sh native/android/emulator-test.sh || (adb logcat -d > /tmp/dae-emulator-logcat.txt; exit 1)
+            adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS || true
+            sh native/android/emulator-test.sh || (adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' || true; adb logcat -d > /tmp/dae-emulator-logcat.txt; exit 1)
       - name: Keep instrumented test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
