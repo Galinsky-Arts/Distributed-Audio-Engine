@@ -95,7 +95,9 @@ public final class WebViewAudioBridgeEmulatorTest {
     private void install(String url) throws Exception {
         onMain(() -> {
             WebViewHostActivity a = activity.get();
-            AndroidAudioHost host = new AndroidAudioHost(a);
+            // The emulator's simulated audio clock drifts past the production 10 ms limit
+            // (CLOCK_REJOIN_REQUIRED) within seconds; widen it for this emulator run only.
+            AndroidAudioHost host = new AndroidAudioHost(a, 250);
             audioHost.set(host);
             bridge.set(new WebViewAudioBridge(a.webView, ORIGIN, host, WebViewAudioBridgeEmulatorTest::asset));
             a.webView.loadUrl(url);

@@ -89,8 +89,14 @@ public final class AndroidAudioHost implements AutoCloseable {
         @Override public void onActivityStopped(Activity a) {}
         @Override public void onActivitySaveInstanceState(Activity a,Bundle state) {}
     };
-    public AndroidAudioHost(Activity owner) {
+    private final double clockToleranceMs;
+    public AndroidAudioHost(Activity owner) { this(owner,FrameClock.DEFAULT_TOLERANCE_MS); }
+    /** Package-private for emulator tests only: an emulator's simulated audio clock
+     * drifts past the production 10 ms model limit within seconds. Production code
+     * cannot reach this constructor. */
+    AndroidAudioHost(Activity owner,double clockToleranceMs) {
         requireMain();
+        this.clockToleranceMs=clockToleranceMs;
         activity=new WeakReference<>(owner); application=owner.getApplication();
         manager=(AudioManager)application.getSystemService(Context.AUDIO_SERVICE);
         if(manager==null)throw new IllegalStateException("AUDIO_MANAGER_UNAVAILABLE");
@@ -174,7 +180,7 @@ public final class AndroidAudioHost implements AutoCloseable {
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
             int channels=s.pcm.channels, bytesPerFrame=channels*4;
             block=ByteBuffer.allocateDirect(BLOCK_FRAMES*bytesPerFrame).order(ByteOrder.nativeOrder());
-            AudioTimestamp stamp=new AudioTimestamp(); FrameClock clock=new FrameClock(s.pcm.sampleRate);
+            AudioTimestamp stamp=new AudioTimestamp(); FrameClock clock=new FrameClock(s.pcm.sampleRate,clockToleranceMs);
             long written=0; double started=nowMonotonicMs(); int underruns=s.track.getUnderrunCount();
             boolean activated=false;
             while(s.running) {

@@ -73,8 +73,16 @@ public final class NativePcmTest {
         double next=clock.observe(0,1_001_000_000L,(1L<<32)+16,1001);
         assert Math.abs((next-first)-1)<0.0001;
     }
+    static void clockTolerance() {
+        // 20 ms of anchor drift: the production model rejects it; a bounded test tolerance does not.
+        FrameClock strict=new FrameClock(8000);strict.observe(0,1_000_000_000L,80,1000);
+        rejects(() -> strict.observe(8,1_021_000_000L,88,1021));
+        FrameClock wide=new FrameClock(8000,250);wide.observe(0,1_000_000_000L,80,1000);
+        wide.observe(8,1_021_000_000L,88,1021);
+        rejects(() -> new FrameClock(8000,0.5));rejects(() -> new FrameClock(8000,251));rejects(() -> new FrameClock(8000,Double.NaN));
+    }
     public static void main(String[] args) throws Exception {
-        copiedAndStopped();contractionAndOldIds();invalidInputsAndBuffers();faultAndGeneration();closedLifetime();clockContinuity();clockWrap();
-        System.out.println("Android JNI: 7 contract cases passed, including concurrent close and timestamp wrap");
+        copiedAndStopped();contractionAndOldIds();invalidInputsAndBuffers();faultAndGeneration();closedLifetime();clockContinuity();clockWrap();clockTolerance();
+        System.out.println("Android JNI: 8 contract cases passed, including concurrent close and timestamp wrap");
     }
 }
