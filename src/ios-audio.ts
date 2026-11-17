@@ -34,6 +34,9 @@ export interface IOSAudioBridge {
   updateEnvelope(id: string, gainCeiling: number, fadeStartHostTimeMs: number, stopAtHostTimeMs: number): void;
   cancel(id: string): void;
   cancelAll(): void;
+  /** Optional native queue fill: unrendered kernel frames at a host-clock time,
+   * or null when no route is active. Feeds drift control only; never authority. */
+  queueFill?(): { fillFrames: number; hostTimeMs: number } | null;
 }
 
 export interface IOSSinkOptions {

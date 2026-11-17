@@ -28,6 +28,7 @@ import JavaScriptCore
     }
     func cancel(id: String) { kernel.cancel(id: id) }
     func cancelAll() { kernel.cancelAll() }
+    func queueFillFrames() -> UInt64? { kernel.state.active ? kernel.state.pendingFrames : nil }
     func stop() { kernel.deactivate(); generation += 1; listener?(.disconnected) }
     func close() { if !closed { closed = true; stop(); listener = nil } }
     func render(_ time: Double = 1000, frames: UInt32 = 8) -> [Float] {
@@ -90,6 +91,21 @@ final class JavaScriptCoreAudioBridgeTests: XCTestCase {
             _ = host.render(1001)
             XCTAssertNil(context.exception)
             XCTAssertEqual(context.evaluateScript("events[events.length-1].id")?.toString(), "dispatch-1")
+        }
+    }
+    func testQueueFillReportsUnrenderedNativeFrames() async throws {
+        try await MainActor.run {
+            let (context, bridge, host) = try setupBridge(start: false); defer { bridge.close() }
+            XCTAssertTrue(context.evaluateScript("audio.queueFill() === null")?.toBool() ?? false)
+            _ = context.evaluateScript("audio.start();" + requestScript + "audio.enqueue(request);")
+            XCTAssertNil(context.exception)
+            XCTAssertEqual(context.evaluateScript("audio.queueFill().fillFrames")?.toDouble(), 8)
+            XCTAssertEqual(context.evaluateScript("audio.queueFill().hostTimeMs")?.toDouble(), 1000)
+            _ = host.render(1000, frames: 4)
+            XCTAssertEqual(context.evaluateScript("audio.queueFill().fillFrames")?.toDouble(), 4)
+            _ = context.evaluateScript("audio.stop();")
+            XCTAssertTrue(context.evaluateScript("audio.queueFill() === null")?.toBool() ?? false)
+            XCTAssertNil(context.exception)
         }
     }
     func testMalformedSamplesAndMetadataFailClosed() async throws {

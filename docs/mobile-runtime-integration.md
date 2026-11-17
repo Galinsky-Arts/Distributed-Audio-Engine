@@ -14,7 +14,7 @@ This is the implementation boundary for the **foreground** Android AudioTrack/JN
 
 ## Android consumption
 
-The AAR is a Java 17 Android library (min API 26). Construct `AndroidAudioHost` from the foreground owning Activity on the main thread, subscribe to typed `Event`, then start only on an explicit user playback action. Keep JavaScript-to-Java transport in the trusted application (e.g. a reviewed in-process typed binding); do not expose `@JavascriptInterface` to arbitrary web content. Schedule `NativePcm.Request` synchronously with native-owned PCM copying; immediately clear temporary buffers. Sample the host using `AndroidAudioHost.nowMonotonicMs()` and do not confuse it with Unix/elapsedRealtime. Map event payloads to the exact TypeScript union, never a JSON serialization of all nullable Java fields.
+The AAR is a Java 17 Android library (min API 26). Construct `AndroidAudioHost` from the foreground owning Activity on the main thread, subscribe to typed `Event`, then start only on an explicit user playback action. Keep JavaScript-to-Java transport in the trusted application (e.g. a reviewed in-process typed binding); do not expose `@JavascriptInterface` to arbitrary web content. Schedule `NativePcm.Request` synchronously with native-owned PCM copying; immediately clear temporary buffers. Sample the host using `AndroidAudioHost.nowMonotonicMs()` and do not confuse it with Unix/elapsedRealtime. Map event payloads to the exact TypeScript union, never a JSON serialization of all nullable Java fields. `WebViewAudioBridge` implements this for a WebView restricted to one trusted bundled origin (see `native/android/README.md`); it is not a Signal binding or a complete endpoint runtime.
 
 ## iOS consumption
 

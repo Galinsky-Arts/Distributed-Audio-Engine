@@ -95,6 +95,12 @@ public final class NativePcm implements AutoCloseable {
         gate.readLock().lock(); try { return handle!=0 && !fault && nState(handle)==1; }
         finally { gate.readLock().unlock(); }
     }
+    /** Scheduled frames the native kernel has not rendered yet (0 when inactive or
+     * faulted). This is queue fill for drift control, not an OS buffer or audible-output measure. */
+    public long pendingFrames() {
+        gate.readLock().lock(); try { return handle==0||fault?0:nPending(handle); }
+        finally { gate.readLock().unlock(); }
+    }
     public List<String> drainCompleted() {
         gate.writeLock().lock(); try {
             open(); List<String> result=new ArrayList<>();
@@ -137,4 +143,5 @@ public final class NativePcm implements AutoCloseable {
     private static native int nRender(long handle,long generation,double start,int frames,ByteBuffer output,int channels);
     private static native long[] nDrain(long handle);
     private static native int nState(long handle);
+    private static native long nPending(long handle);
 }

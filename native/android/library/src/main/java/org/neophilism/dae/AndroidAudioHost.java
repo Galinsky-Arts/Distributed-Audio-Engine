@@ -251,6 +251,14 @@ public final class AndroidAudioHost implements AutoCloseable {
         try { s.revision.incrementAndGet();s.pcm.cancel(id); }
         finally { s.revision.incrementAndGet();s.delivery.unlock(); }
     }
+    /** Unrendered frames in the native kernel for the announced route, or -1 when no
+     * route is active. Feeds EndpointPlaybackSession.observeOutputFill; it is not an
+     * AudioTrack buffer, latency or audible-output measurement. */
+    public long queueFillFrames() {
+        requireMain(); Session s=current;
+        if(closed||s==null||!s.running||!s.announced)return -1;
+        return s.pcm.pendingFrames();
+    }
     public void cancelAll() {
         requireMain();Session s=current;
         if(s!=null&&s.running) {

@@ -50,6 +50,10 @@ typedef struct {
   int active;
   int timing_fault;
   double rendered_until_ms;
+  /* Scheduled frames not yet rendered (after rendered_until_ms and before each
+   * voice's stop/end). This is the native queue fill a drift controller observes;
+   * it says nothing about OS/hardware buffers or audible output. */
+  uint64_t pending_frames;
 } dae_pcm_snapshot;
 
 dae_pcm_queue *dae_pcm_create(dae_pcm_config config);

@@ -75,7 +75,15 @@ const session = EndpointPlaybackSession.android({ ...options, bridge, native,
 // Host reports its native queue fill; tracking adjusts the resampler only.
 const decision = session.observeOutputFill(queuedFrames, monotonicNowMs);
 // resync-required => session stops ('resync-required'); a fresh signed join is needed.
+// Or let the session read the host's own fill through the bridge's queueFill():
+const fromHost = session.reportNativeQueueFill(); // null when no route is active
 ```
+
+Both native hosts now report fill themselves: the C kernel's `pending_frames`
+(scheduled frames after the last render, up to each voice's stop) is exposed as
+`AndroidAudioHost.queueFillFrames()` / `IOSAudioHost.queueFillFrames()` and through
+the WebView and JavaScriptCore bridges as `queueFill()`. It measures the native
+queue, not OS/hardware buffers, route latency or audible output.
 
 - Conversion happens in the endpoint JavaScript runtime on decrypted, currently
   authorized PCM, immediately before the native bridge copy. The native sink still

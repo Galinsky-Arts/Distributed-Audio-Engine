@@ -83,3 +83,62 @@ emulator cannot complete DAE-09, DAE-11, DAE-12 or independent security review.
 
 Primary API/build references: Android AudioTrack, AudioTimestamp, AudioRouting,
 audio-focus guide and AGP 8.11 compatibility; Gradle release checksums.
+
+## WebView JavaScript bridge (development)
+
+`WebViewAudioBridge` is the Android counterpart of the iOS
+[`JavaScriptCoreAudioBridge`](../ios/javascriptcore.md). It uses only the
+framework `android.webkit.WebView` (no third-party JavaScript VM, no new
+cryptographic protocol, no remote-script loader) and exposes `AndroidAudioHost`
+to an application-owned WebView that loads **one trusted, bundled HTTPS origin**
+(for example `https://appassets.androidplatform.net` served from APK assets):
+
+```java
+// Main thread, foreground Activity. JavaScript must already be enabled.
+AndroidAudioHost host = new AndroidAudioHost(activity);
+WebViewAudioBridge bridge = new WebViewAudioBridge(webView,
+    "https://appassets.androidplatform.net", host, assetLoader::shouldInterceptRequest);
+// The bundled page runs WebViewAudioBridge.WRAPPER_SCRIPT first and passes
+// globalThis.nativeAudio to EndpointPlaybackSession.android({ bridge: nativeAudio,
+//   native: { nowMonotonicMs: () => nativeAudio.nowMonotonicMs() }, ... }).
+// On explicit leave/teardown:
+bridge.close();
+```
+
+- The bridge owns the WebView client: navigations and sub-resources outside the
+  trusted origin are refused (HTTP 403), file/content access, pop-up windows and
+  mixed content are disabled, and every call rechecks the top-level origin on the
+  main thread. A mismatch, malformed call, callback failure or 2 s main-thread
+  timeout closes the host and returns only `NATIVE_AUDIO_BRIDGE_FAILURE`.
+- The wrapper snapshots data properties only (no getters), requires a real
+  non-shared, non-resizable `Float32Array`, type-checks every scalar and passes
+  the typed array directly to a `float[]` parameter; PCM is never JSON or base64
+  encoded. Java validates ranges, integral fields and exact sample counts again,
+  the C kernel rejects non-finite or out-of-range samples, and the bridge-owned
+  transfer array is zeroed after the native copy.
+- Events reach the page as the exact TypeScript union members (no nullable Java
+  fields) through a per-installation, non-writable dispatch hook; only the
+  current subscription ticket receives them. Unsubscribe is idempotent and
+  ticket-bound; one subscription owner at a time.
+- `nativeAudio.queueFill()` returns `{fillFrames, monotonicMs}` (unrendered C-kernel
+  frames at the host monotonic clock) or `null` with no active route. An
+  `EndpointPlaybackSession` built with that bridge and `streamAdapter.drift` reads it
+  through `reportNativeQueueFill()`. This is queue fill for drift control, not an
+  AudioTrack buffer, latency or audible-output measurement.
+
+This is **not a complete endpoint runtime**: the bundled page must still provide
+the engine's WebCrypto needs and an approved authenticated parent/manifest/key
+channel. Android WebView offers no supported binding for the pinned
+`@signalapp/libsignal-client` (a Node native library); a mobile Signal binding
+remains a separate gate. No fake crypto, temporary key, or plaintext fallback is
+installed.
+
+**Verification.** `JavaScriptAudioBridge` (the platform-neutral core) has nine
+real Java/JNI/C cases in `tests/JavaScriptAudioBridgeTest.java` (owned copy and
+transfer wipe, exact event JSON, envelope contraction, queue fill, malformed
+metadata/samples, stale generations, callback failure, hostile event fields,
+ticket-bound unsubscribe/rejoin, explicit close/fault) run by `test-jni.sh`. The
+WebView adapter is compiled and linted by the Android Gradle build in CI. Neither
+job runs a WebView, emulator or device: the WebView typed-array-to-`float[]`
+coercion, main-thread hop and origin enforcement have **not** been exercised on
+an Android runtime, and no device, route-latency or audible-output claim follows.

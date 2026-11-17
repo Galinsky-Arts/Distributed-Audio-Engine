@@ -11,5 +11,8 @@ cc -std=c11 -shared -fPIC -pthread -Wall -Wextra -Wpedantic -Werror \
 javac --release 17 -Xlint:all -Werror -d "$OUT" \
   "$ROOT/native/android/library/src/main/java/org/neophilism/dae/NativePcm.java" \
   "$ROOT/native/android/library/src/main/java/org/neophilism/dae/FrameClock.java" \
-  "$ROOT/native/android/tests/NativePcmTest.java"
+  "$ROOT/native/android/library/src/main/java/org/neophilism/dae/JavaScriptAudioBridge.java" \
+  "$ROOT/native/android/tests/NativePcmTest.java" \
+  "$ROOT/native/android/tests/JavaScriptAudioBridgeTest.java"
 java -ea -Djava.library.path="$OUT" -cp "$OUT" org.neophilism.dae.NativePcmTest
+java -ea -Djava.library.path="$OUT" -cp "$OUT" org.neophilism.dae.JavaScriptAudioBridgeTest

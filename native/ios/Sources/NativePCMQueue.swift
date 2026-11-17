@@ -39,6 +39,9 @@ public struct NativeQueueState {
     public let occupiedVoices: UInt32
     public let active: Bool
     public let timingFault: Bool
+    /// Scheduled frames not yet rendered by the C kernel: native queue fill for
+    /// drift control, not an OS buffer, latency or audible-output measurement.
+    public let pendingFrames: UInt64
 }
 
 /// Dictionary mutations are control-thread locked; rendering touches only the C
@@ -128,7 +131,8 @@ public final class NativePCMQueue: @unchecked Sendable {
     public var state: NativeQueueState {
         let s = dae_pcm_inspect(queue)
         return NativeQueueState(generation: s.generation, queuedSamples: s.queued_samples,
-            occupiedVoices: s.occupied_voices, active: s.active != 0, timingFault: s.timing_fault != 0)
+            occupiedVoices: s.occupied_voices, active: s.active != 0, timingFault: s.timing_fault != 0,
+            pendingFrames: s.pending_frames)
     }
     /// No allocation or waiting. The caller owns and validates the buffer capacity.
     @discardableResult public func render(generation: UInt64, startMs: Double, frames: UInt32,

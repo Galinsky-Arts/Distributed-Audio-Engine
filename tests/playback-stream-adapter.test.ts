@@ -135,7 +135,7 @@ test('invalid adapter configuration is rejected', () => {
 type CommonEvent = Exclude<AndroidAudioEvent, { type: 'interrupted' }>;
 const scope = { tenantId: 'tenant', application: 'distributed-radio' as const, sessionId: 'session' };
 const route = { endpointId: 'endpoint', routeId: 'route', outputId: 'output', generation: 1, kind: 'unknown' as const };
-async function session(streamAdapter?: PlaybackStreamAdapterOptions) {
+async function session(streamAdapter?: PlaybackStreamAdapterOptions, queueFill?: () => { fillFrames: number; monotonicMs: number } | null) {
   const keys = await createControlSigningKey();
   const controls = new ControlVerifier(scope, new Map([['operator', keys.publicKey]]), new Set(['lease', 'emergency-stop']), new MemoryCheckpointStore());
   const context = { tenantId: scope.tenantId, application: scope.application, parentMessageId: 'private-parent' };
@@ -156,6 +156,7 @@ async function session(streamAdapter?: PlaybackStreamAdapterOptions) {
     subscribe(value: (event: CommonEvent) => void) { listener = value; return () => { listener = undefined; }; },
     enqueue(request: Readonly<AndroidPcmRequest>) { copied.push({ ...request, samples: request.samples.slice() }); },
     updateEnvelope() {}, cancel() {}, cancelAll() {},
+    ...(queueFill ? { queueFill } : {}),
   };
   const playback = EndpointPlaybackSession.android({ ...options, bridge, native: { nowMonotonicMs: () => 5000 } });
   listener!({ type: 'route-active', route, sampleRate: 16000, maxChannels: 1 });
@@ -185,4 +186,23 @@ test('playback session adapts decrypted PCM to the active native format and resy
   assert.equal(playback.snapshot().phase, 'stopped'); assert.equal(playback.snapshot().stopReason, 'resync-required');
   await assert.rejects(playback.pump(), /NOT_PLAYING/);
   playback.close();
+});
+
+test('playback session reads native host queue fill through the bridge and fails closed', async () => {
+  const fills: ({ fillFrames: number; monotonicMs: number } | null)[] = [null, { fillFrames: 1600, monotonicMs: 5000 }, { fillFrames: 4000, monotonicMs: 5010 }];
+  const { playback } = await session({ drift: { targetFillFrames: 1600, resyncErrorFrames: 800 } }, () => fills.shift()!);
+  await playback.pump();
+  assert.equal(playback.reportNativeQueueFill(), null); // host reports no active route
+  assert.equal(playback.reportNativeQueueFill()?.state, 'warming');
+  assert.equal(playback.reportNativeQueueFill()?.state, 'resync-required');
+  assert.equal(playback.snapshot().stopReason, 'resync-required');
+  assert.equal(playback.reportNativeQueueFill(), null); // not playing: host is not consulted
+  playback.close();
+  const bad = await session({ drift: { targetFillFrames: 1600, resyncErrorFrames: 800 } }, () => ({ fillFrames: -1, monotonicMs: 5000 }));
+  assert.throws(() => bad.playback.reportNativeQueueFill());
+  const failing = await session({ drift: { targetFillFrames: 1600, resyncErrorFrames: 800 } }, () => { throw new Error('native'); });
+  assert.throws(() => failing.playback.reportNativeQueueFill(), /native/);
+  assert.equal(failing.playback.snapshot().stopReason, 'failure');
+  const noFill = await session({ drift: { targetFillFrames: 1600, resyncErrorFrames: 800 } });
+  assert.throws(() => noFill.playback.reportNativeQueueFill(), /NATIVE_FILL_UNAVAILABLE/);
 });
