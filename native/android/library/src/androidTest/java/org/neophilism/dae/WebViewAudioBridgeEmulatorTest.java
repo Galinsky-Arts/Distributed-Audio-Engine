@@ -113,7 +113,7 @@ public final class WebViewAudioBridgeEmulatorTest {
     }
     private void startPlayback() throws Exception {
         install(ORIGIN + "/index.html");
-        waitFor("bundled wrapper", () -> "object".equals(js("typeof nativeAudio")));
+        waitFor("bundled wrapper and harness", () -> "object function".equals(js("typeof nativeAudio + ' ' + typeof attempt")));
         assertEquals("ok:\"subscribed\"", js("attempt(sub)"));
         assertEquals("ok:null", js("attempt(function(){return nativeAudio.queueFill();})"));
         assertEquals("ok:null", js("attempt(function(){nativeAudio.start();})"));
