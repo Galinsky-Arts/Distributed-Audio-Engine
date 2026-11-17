@@ -1,5 +1,13 @@
 # Ciphertext relay test deployment on Render
 
+## Redeploy — November 17, 2026
+
+Manual API deploy `dep-dbtrvnjm8hqs73dct300` of commit `3032e46` (Android
+WebView bridge and native queue fill; the relay code itself is unchanged). The
+build ran the relay suite (35/35) and the start log reports `listening`,
+`environment: staging`, `sourceCommit: 3032e46…`, `storage: ephemeral-sqlite`,
+`productionReady: false`. Grants are still `[]`; no client traffic was run.
+
 ## Deployment record — November 15, 2026
 
 Deployed to the Galinsky Arts Render workspace as free web service

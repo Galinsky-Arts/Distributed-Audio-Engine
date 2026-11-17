@@ -35,10 +35,17 @@
     "name": "distributed-audio-engine-relay-staging",
     "url": "https://distributed-audio-engine-relay-staging.onrender.com",
     "plan": "free",
-    "deployId": "dep-dbsvjnu7bikc73ckarq0",
-    "sourceCommit": "c6fd5fa6c9a1a5cf3e8a3a72f60f515083661430",
-    "deployedAt": "2026-11-15T18:29:24Z",
+    "deployId": "dep-dbtrvnjm8hqs73dct300",
+    "sourceCommit": "3032e46fa18d250bfbb03ef0abf2c6e98ca509d4",
+    "deployedAt": "2026-11-17T02:46:20Z",
     "grants": "DAE_RELAY_GRANTS_JSON=[] (owner-configured; all client requests return 401 until hashed grants are added)",
-    "verification": "Render deploy status live and startup log {status: listening, environment: staging, storage: ephemeral-sqlite, productionReady: false}; build ran the relay suite (35/35). No client traffic or cloud rehearsal was run."
+    "verification": "Manual API deploy; Render deploy status live and startup log {status: listening, environment: staging, sourceCommit: 3032e46, storage: ephemeral-sqlite, productionReady: false}; build ran the relay suite (35/35). No client traffic or cloud rehearsal was run.",
+    "previousDeploys": [
+      {
+        "deployId": "dep-dbsvjnu7bikc73ckarq0",
+        "sourceCommit": "c6fd5fa6c9a1a5cf3e8a3a72f60f515083661430",
+        "deployedAt": "2026-11-15T18:29:24Z"
+      }
+    ]
   }
 }
