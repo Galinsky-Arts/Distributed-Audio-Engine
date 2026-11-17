@@ -100,6 +100,9 @@ public final class WebViewAudioBridgeEmulatorTest {
             return null;
         });
     }
+    private String diagnostics() throws Exception {
+        return "bridge failure=" + onMain(() -> bridge.get().lastFailure());
+    }
     private JSONArray events() throws Exception { return new JSONArray(js("JSON.stringify(events)")); }
     private JSONObject lastEvent(String type) throws Exception {
         JSONArray all = events();
@@ -112,7 +115,8 @@ public final class WebViewAudioBridgeEmulatorTest {
         assertEquals("ok:\"subscribed\"", js("attempt(sub)"));
         assertEquals("ok:null", js("attempt(function(){return nativeAudio.queueFill();})"));
         assertEquals("ok:null", js("attempt(function(){nativeAudio.start();})"));
-        waitFor("route-active", () -> lastEvent("route-active") != null);
+        try { waitFor("route-active", () -> lastEvent("route-active") != null); }
+        catch (AssertionError error) { throw new AssertionError("no route; events=" + events() + "; " + diagnostics(), error); }
         JSONObject active = lastEvent("route-active");
         // Exact TypeScript union member: type, route, sampleRate, maxChannels; route has five fields.
         assertEquals(4, active.length());
@@ -122,7 +126,7 @@ public final class WebViewAudioBridgeEmulatorTest {
     @Test public void playsSyntheticPcmReportsQueueFillAndFailsClosedOnBadJavaCall() throws Exception {
         startPlayback();
         String played = js("attempt(function(){return playTone('tone-1',300);})");
-        assertTrue(played, played.startsWith("ok:"));
+        assertTrue(played + "; events=" + events() + "; " + diagnostics(), played.startsWith("ok:"));
         JSONObject result = new JSONObject((String) new JSONTokener(played.substring(3)).nextValue());
         int frames = result.getInt("frames");
         JSONObject fill = result.getJSONObject("fill");

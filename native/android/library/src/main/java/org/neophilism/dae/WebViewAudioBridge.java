@@ -102,6 +102,9 @@ public final class WebViewAudioBridge implements AutoCloseable {
         }
     }
 
+    /** Test diagnostics only: exception class and frame, no message or caller data. */
+    String lastFailure() { return core.lastFailure(); }
+
     @Override public void close() {
         requireMain();
         if (closed) return;
