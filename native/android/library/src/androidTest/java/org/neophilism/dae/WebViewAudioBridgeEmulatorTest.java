@@ -50,7 +50,14 @@ public final class WebViewAudioBridgeEmulatorTest {
     @Before public void setUp() throws Exception {
         scenario = ActivityScenario.launch(WebViewHostActivity.class);
         scenario.onActivity(activity::set);
-        waitFor("window focus", () -> onMain(() -> activity.get().hasWindowFocus()));
+        shell("wm dismiss-keyguard");
+        shell("input keyevent 82");
+        try { waitFor("window focus", () -> onMain(() -> activity.get().hasWindowFocus())); }
+        catch (AssertionError error) {
+            throw new AssertionError("no window focus; " + shell("dumpsys window displays").lines()
+                .filter(l -> l.contains("mCurrentFocus") || l.contains("mFocusedApp")).map(String::trim)
+                .reduce("", (a, b) -> a + b + "; "), error);
+        }
     }
     @After public void tearDown() {
         if (scenario != null) {
@@ -59,6 +66,12 @@ public final class WebViewAudioBridgeEmulatorTest {
         }
     }
 
+    private static String shell(String command) {
+        try (android.os.ParcelFileDescriptor fd = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+             java.io.InputStream in = new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException error) { return ""; }
+    }
     private interface Check { boolean ok() throws Exception; }
     private static void waitFor(String what, Check check) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
