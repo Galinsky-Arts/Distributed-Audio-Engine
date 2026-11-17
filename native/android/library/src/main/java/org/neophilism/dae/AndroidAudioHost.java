@@ -70,6 +70,7 @@ public final class AndroidAudioHost implements AutoCloseable {
         final ReentrantLock delivery=new ReentrantLock();
         volatile boolean running=true, announced;
         volatile int routedId=-1;
+        volatile String stopCause;
         AudioFocusRequest focus;
         AudioRouting.OnRoutingChangedListener routing;
         Session(AudioTrack track,NativePcm pcm,long generation) { this.track=track;this.pcm=pcm;this.generation=generation; }
@@ -221,6 +222,9 @@ public final class AndroidAudioHost implements AutoCloseable {
             Thread.currentThread().interrupt(); s.pcm.latchFault();
         } catch(RuntimeException error) {
             s.pcm.latchFault(); // Do not log PCM, IDs, device names or exception payloads.
+            // Our own fixed fail-closed codes only; anything else is reported by class.
+            String code=error.getMessage();
+            s.stopCause=code!=null&&code.matches("[A-Z_]{1,64}")?code:error.getClass().getName();
         } finally {
             s.running=false; s.pcm.latchFault();
             if(block!=null) { block.clear(); NativePcm.zero(block); }
@@ -231,10 +235,14 @@ public final class AndroidAudioHost implements AutoCloseable {
                 s.track.release();
             } finally {
                 s.pcm.close(); s.delivery.unlock();
+                if(s.stopCause!=null)lastStopCause=s.stopCause;
                 main.post(() -> interrupt(s,"service-destroyed"));
             }
         }
     }
+    private volatile String lastStopCause;
+    /** Diagnostics: the fixed code that stopped the last output worker, or null. */
+    String lastStopCause() { return lastStopCause; }
     private Session ready() {
         requireMain(); Session s=current;
         if(closed||s==null||!s.running||!s.announced)throw new IllegalStateException("AUDIO_OUTPUT_UNAVAILABLE");

@@ -34,6 +34,7 @@ public final class WebViewAudioBridgeEmulatorTest {
     private ActivityScenario<WebViewHostActivity> scenario;
     private final AtomicReference<WebViewHostActivity> activity = new AtomicReference<>();
     private final AtomicReference<WebViewAudioBridge> bridge = new AtomicReference<>();
+    private final AtomicReference<AndroidAudioHost> audioHost = new AtomicReference<>();
 
     private static WebResourceResponse asset(Uri url) {
         String path = url.getPath();
@@ -95,13 +96,14 @@ public final class WebViewAudioBridgeEmulatorTest {
         onMain(() -> {
             WebViewHostActivity a = activity.get();
             AndroidAudioHost host = new AndroidAudioHost(a);
+            audioHost.set(host);
             bridge.set(new WebViewAudioBridge(a.webView, ORIGIN, host, WebViewAudioBridgeEmulatorTest::asset));
             a.webView.loadUrl(url);
             return null;
         });
     }
     private String diagnostics() throws Exception {
-        return "bridge failure=" + onMain(() -> bridge.get().lastFailure());
+        return "bridge failure=" + onMain(() -> bridge.get().lastFailure()) + "; host stop=" + audioHost.get().lastStopCause();
     }
     private JSONArray events() throws Exception { return new JSONArray(js("JSON.stringify(events)")); }
     private JSONObject lastEvent(String type) throws Exception {
