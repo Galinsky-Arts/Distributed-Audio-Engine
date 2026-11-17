@@ -21,6 +21,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     lint { abortOnError true }
+    // Test APK only: a low target SDK makes Android 14 show a focus-stealing compatibility dialog.
+    testOptions { targetSdk 36 }
 }
 
 // Instrumented emulator tests only; the AAR keeps no runtime dependencies.
