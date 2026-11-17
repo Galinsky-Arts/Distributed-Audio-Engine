@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test APK only: hosts the WebView bridge under instrumentation. Not part of the AAR. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application>
+        <activity android:name="org.neophilism.dae.WebViewHostActivity" android:exported="false" />
+    </application>
+</manifest>

@@ -67,3 +67,44 @@ jobs:
           path: /tmp/dae-android-artifact/
           if-no-files-found: error
           retention-days: 7
+  android-emulator:
+    # Emulator evidence only: a real Android WebView, AudioTrack and JNI kernel on an
+    # x86_64 emulator. Not device, route-latency or audible-output evidence.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Use installed Java 17
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install pinned Android build components using existing runner licenses
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+      - name: Instrumented WebView bridge tests on an API 34 emulator
+        uses: ReactiveCircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          script: |
+            adb shell input keyevent 82 || true
+            sh native/android/emulator-test.sh || (adb logcat -d > /tmp/dae-emulator-logcat.txt; exit 1)
+      - name: Keep instrumented test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-emulator-evidence-${{ github.sha }}
+          path: |
+            native/android/library/build/outputs/androidTest-results/
+            native/android/library/build/reports/androidTests/
+            /tmp/dae-emulator-logcat.txt
+          if-no-files-found: warn
+          retention-days: 14
