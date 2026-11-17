@@ -1,5 +1,17 @@
 # Implementation and evidence status
 
+## Android emulator evidence — November 17, 2026
+
+A new `android-emulator` CI job runs three instrumented tests on an API 34 x86_64
+emulator: the bundled HTTPS-origin page drives `WebViewAudioBridge` into a real
+`AndroidAudioHost`, plays a 300 ms synthetic tone, checks `queueFill()` and the
+`completed` event, and verifies fail-closed shutdown on bad calls and refusal for
+another origin. This is **emulator evidence, not device evidence**. Finding: the
+emulator audio clock exceeds the production 10 ms timestamp-model limit within
+seconds (`CLOCK_REJOIN_REQUIRED`); the test uses a package-private 250 ms tolerance,
+production is unchanged, and long-term drift handling remains a device gate
+([details](../native/android/README.md#webview-javascript-bridge-development)).
+
 ## Android WebView bridge and native queue fill — November 17, 2026
 
 `WebViewAudioBridge` is the Android counterpart of the iOS JavaScriptCore bridge:

@@ -52,6 +52,7 @@ public final class JavaScriptAudioBridge implements AutoCloseable {
     private final EventSink sink;
     private Runnable detach;
     private boolean subscribed, closed;
+    private String lastFailure;
     private long ticket;
 
     public JavaScriptAudioBridge(Host host, EventSink sink) {
@@ -78,7 +79,7 @@ public final class JavaScriptAudioBridge implements AutoCloseable {
     private void guarded(Call call) {
         if (closed) throw failure();
         try { call.run(); }
-        catch (RuntimeException error) { close(); throw failure(); }
+        catch (RuntimeException error) { lastFailure = describe(error); close(); throw failure(); }
     }
 
     public long subscribe() {
@@ -144,6 +145,14 @@ public final class JavaScriptAudioBridge implements AutoCloseable {
     /** Called by the script wrapper when it rejects a request before crossing into Java. */
     public void fault() { close(); }
     public boolean isClosed() { return closed; }
+    /** Diagnostics for tests: exception class and throwing frame only, never its
+     * message or any caller-supplied value. */
+    String lastFailure() { return lastFailure; }
+    static String describe(Throwable error) {
+        StackTraceElement[] frames = error.getStackTrace();
+        String at = frames.length == 0 ? "?" : frames[0].getClassName() + "." + frames[0].getMethodName();
+        return error.getClass().getName() + " at " + at;
+    }
 
     private void detachListener() {
         subscribed = false;
