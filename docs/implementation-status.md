@@ -1,5 +1,19 @@
 # Implementation and evidence status
 
+## Android WebView bridge and native queue fill — November 17, 2026
+
+`WebViewAudioBridge` is the Android counterpart of the iOS JavaScriptCore bridge:
+a framework-WebView host restricted to one trusted bundled HTTPS origin, with a
+platform-neutral `JavaScriptAudioBridge` core (strict validation, owned copies,
+exact event JSON, ticket-bound subscription, close-on-fault). Both native hosts now
+report native queue fill (`pending_frames` in the C kernel) through `queueFill()`,
+and `EndpointPlaybackSession.reportNativeQueueFill()` feeds it to the drift
+controller. New tests: one C kernel case, nine Java/JNI/C bridge cases, one Swift
+JavaScriptCore case and one portable session case (326 portable total). Hosted
+native CI compiles/lints the Android AAR and compiles the iOS host. No WebView,
+emulator, device, route latency or audible output has been exercised
+([details](../native/android/README.md#webview-javascript-bridge-development)).
+
 ## Playback stream-adapter seam — November 15, 2026
 
 `AdaptingPcmSink` connects the stream adapters to the endpoint playback path:
@@ -9,8 +23,8 @@ native bridge copy, and exposes `observeOutputFill` for queue-fill drift control
 with a fail-closed `resync-required` stop ([details](stream-adapters.md#playback-session-seam)).
 Nine new portable tests (325 total) cover passthrough, chunk-invariant continuous
 conversion across schedules, discontinuities, truncation, drift steering, skew
-fail-closed and real session composition. Native hosts still do not report queue
-fill on their own; that remains pending device work.
+fail-closed and real session composition. (Native hosts report queue fill since
+November 17; device measurement remains pending.)
 
 ## Stream adapter checkpoint — November 15, 2026
 

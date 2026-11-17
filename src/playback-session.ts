@@ -32,6 +32,7 @@ export type IOSPlaybackSessionOptions = PlaybackSessionOptions & {
 export type PlaybackSessionStopReason = 'user' | 'output-changed' | 'authority-expired' | 'emergency' | 'failure' | 'resync-required';
 type NativeSink = AndroidAudioSink | IOSAudioSink;
 type SinkFactory = (authority: PlaybackAuthority, invalidate: () => void) => NativeSink;
+type FillReader = () => { fillFrames: number; atMs: number } | null;
 
 /** Owns the player, authority and native sink as one endpoint lifecycle.
  * No timers, networking, root provisioning, or invented key-establishment protocol.
@@ -43,6 +44,7 @@ export class EndpointPlaybackSession {
   private readonly adapter: AdaptingPcmSink | undefined;
   private readonly player: EndpointProgramPlayer;
   private readonly nowUnixMs: () => number;
+  private readonly readFill: FillReader | undefined;
   private phase: 'idle' | 'authorizing' | 'playing' | 'stopped' | 'closed' = 'idle';
   private reason: PlaybackSessionStopReason | null = null;
   private generation = 0;
@@ -52,9 +54,10 @@ export class EndpointPlaybackSession {
   private leasePending = false;
   private emergencyPending = false;
 
-  private constructor(options: PlaybackSessionOptions, createSink: SinkFactory) {
+  private constructor(options: PlaybackSessionOptions, createSink: SinkFactory, readFill?: FillReader) {
     invariant(options.controls.matchesScope(options.scope), 'SESSION_CONTROL_SCOPE_MISMATCH');
     this.nowUnixMs = options.nowUnixMs;
+    this.readFill = readFill;
     this.authority = new PlaybackAuthority(options.controls, options.decodeControlPayload, options.consentedGainCeiling);
     this.authority.mute(true);
     this.sink = createSink(this.authority, () => this.invalidate('output-changed'));
@@ -66,11 +69,19 @@ export class EndpointPlaybackSession {
   }
   static android(options: AndroidPlaybackSessionOptions): EndpointPlaybackSession {
     return new EndpointPlaybackSession(options, (authority, onInvalidated) =>
-      new AndroidAudioSink(options.bridge, authority, { ...options.native, nowUnixMs: options.nowUnixMs, onInvalidated }));
+      new AndroidAudioSink(options.bridge, authority, { ...options.native, nowUnixMs: options.nowUnixMs, onInvalidated }),
+      options.bridge.queueFill ? () => {
+        const fill = options.bridge.queueFill!.call(options.bridge);
+        return fill === null ? null : { fillFrames: fill.fillFrames, atMs: fill.monotonicMs };
+      } : undefined);
   }
   static ios(options: IOSPlaybackSessionOptions): EndpointPlaybackSession {
     return new EndpointPlaybackSession(options, (authority, onInvalidated) =>
-      new IOSAudioSink(options.bridge, authority, { ...options.native, nowUnixMs: options.nowUnixMs, onInvalidated }));
+      new IOSAudioSink(options.bridge, authority, { ...options.native, nowUnixMs: options.nowUnixMs, onInvalidated }),
+      options.bridge.queueFill ? () => {
+        const fill = options.bridge.queueFill!.call(options.bridge);
+        return fill === null ? null : { fillFrames: fill.fillFrames, atMs: fill.hostTimeMs };
+      } : undefined);
   }
   snapshot() {
     return { phase: this.phase, generation: this.generation, stopReason: this.reason,
@@ -85,6 +96,21 @@ export class EndpointPlaybackSession {
     const decision = this.adapter.observeQueueFill(fillFrames, monotonicMs);
     if (decision.state === 'resync-required' && this.phase !== 'stopped') this.invalidate('resync-required');
     return decision;
+  }
+  /** Read the native host's own queue fill (bridge `queueFill`) and feed it to
+   * `observeOutputFill`. Returns null while the host reports no active route or the
+   * session is not playing. Requires a bridge with `queueFill` and `streamAdapter.drift`. */
+  reportNativeQueueFill(): DriftDecision | null {
+    this.requireOpen(); invariant(this.readFill, 'PLAYBACK_SESSION_NATIVE_FILL_UNAVAILABLE');
+    invariant(this.adapter, 'PLAYBACK_SESSION_STREAM_ADAPTER_DISABLED');
+    if (this.phase !== 'playing') return null;
+    let fill: { fillFrames: number; atMs: number } | null;
+    try { fill = this.readFill(); }
+    catch (error) { this.invalidate('failure'); throw error; }
+    if (fill === null) return null;
+    integer(fill.fillFrames, 0, 100_000_000);
+    invariant(typeof fill.atMs === 'number' && Number.isFinite(fill.atMs) && fill.atMs >= 0, 'NATIVE_FILL_INVALID_TIME');
+    return this.observeOutputFill(fill.fillFrames, fill.atMs);
   }
   private now(): number {
     const now = this.nowUnixMs(); integer(now, this.lastNowMs); this.lastNowMs = now; return now;

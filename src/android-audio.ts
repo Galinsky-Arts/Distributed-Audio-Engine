@@ -34,6 +34,9 @@ export interface AndroidAudioBridge {
   updateEnvelope(id: string, gainCeiling: number, fadeStartMonotonicMs: number, stopAtMonotonicMs: number): void;
   cancel(id: string): void;
   cancelAll(): void;
+  /** Optional native queue fill: unrendered kernel frames at a host monotonic time,
+   * or null when no route is active. Feeds drift control only; never authority. */
+  queueFill?(): { fillFrames: number; monotonicMs: number } | null;
 }
 
 export interface AndroidSinkOptions {

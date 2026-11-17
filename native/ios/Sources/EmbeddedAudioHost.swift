@@ -27,6 +27,9 @@ public enum IOSHostEvent {
     func updateEnvelope(id: String, gainCeiling: Float, fadeStartMs: Double, stopAtMs: Double) throws
     func cancel(id: String)
     func cancelAll()
+    /// Unrendered native-queue frames while a route is active, else nil. Feeds
+    /// EndpointPlaybackSession.observeOutputFill; never a playback permission.
+    func queueFillFrames() -> UInt64?
     func stop()
     func close()
 }

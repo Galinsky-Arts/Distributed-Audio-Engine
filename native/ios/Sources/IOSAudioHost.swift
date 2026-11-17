@@ -172,6 +172,11 @@ private final class SourceRenderer {
     }
     public func cancel(id: String) { kernel?.cancel(id: id) }
     public func cancelAll() { kernel?.cancelAll() }
+    public func queueFillFrames() -> UInt64? {
+        guard !closed, let kernel, engine?.isRunning == true else { return nil }
+        let state = kernel.state
+        return state.active && !state.timingFault ? state.pendingFrames : nil
+    }
 
     private func shutdown() {
         completionTimer?.cancel(); completionTimer = nil

@@ -126,6 +126,13 @@ import JavaScriptCore
                 let now = host.currentHostTimeMs()
                 guard now.isFinite, now >= 0, now <= 9_007_199_254_740_991 else { throw NativeAudioError.invalidRequest }
                 return JSValue(double: now, in: context)
+            case "fill":
+                guard let frames = host.queueFillFrames() else { return JSValue(nullIn: context) }
+                let now = host.currentHostTimeMs()
+                guard frames <= 100_000_000, now.isFinite, now >= 0, now <= 9_007_199_254_740_991 else {
+                    throw NativeAudioError.invalidRequest
+                }
+                return JSValue(object: ["fillFrames": Double(frames), "hostTimeMs": now], in: context)
             case "subscribe":
                 guard callback == nil, let listener = args.atIndex(0), listener.isObject,
                       let function = JSValueToObject(context.jsGlobalContextRef, listener.jsValueRef, nil),
@@ -228,6 +235,7 @@ import JavaScriptCore
         cancel: id => call('cancel', [id]),
         cancelAll: () => call('cancelAll', []),
         nowHostTimeMs: () => call('now', []),
+        queueFill: () => call('fill', []),
         start: () => call('start', []),
         stop: () => call('stop', []),
         close: () => call('close', [])

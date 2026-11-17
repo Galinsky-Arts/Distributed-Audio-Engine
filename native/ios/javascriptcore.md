@@ -21,7 +21,10 @@ bridge.close()
 ```
 
 The JavaScript object supplies `subscribe`, `enqueue`, `updateEnvelope`, `cancel`
-and `cancelAll`, plus `nowHostTimeMs`, explicit `start`, `stop` and `close`.
+and `cancelAll`, plus `nowHostTimeMs`, `queueFill`, explicit `start`, `stop` and `close`.
+`queueFill()` returns `{fillFrames, hostTimeMs}` (unrendered C-kernel frames) or
+`null` without an active route; `EndpointPlaybackSession.reportNativeQueueFill()`
+feeds it to the drift controller. It is not an audible-output or latency measure.
 Subscribe before starting the host. Forward that same object to `IOSAudioSink`
 or `EndpointPlaybackSession.ios`, and its native clock function to the sink's
 `nowHostTimeMs` option. Native route return never substitutes for a newly signed
@@ -72,10 +75,10 @@ Native clock failure cannot be treated as a valid timing observation.
 
 ## Verification
 
-`JavaScriptCoreAudioBridgeTests.swift` contains ten macOS JavaScriptCore/Swift/C
+`JavaScriptCoreAudioBridgeTests.swift` contains eleven macOS JavaScriptCore/Swift/C
 cases covering typed-array subviews and owned copies, envelope contraction and
 hard stop, actual native callbacks, invalid metadata and samples, rejected getters,
-callback failure, unsubscribe/rejoin and explicit close. These tests use the real
+callback failure, unsubscribe/rejoin, queue fill and explicit close. These tests use the real
 JavaScriptCore VM and production C queue with a synthetic host clock and route.
 The same native CI separately compiles the concrete iOS AVAudioEngine host and
 bridge for an unsigned simulator target. Linux Swift checks exclude JavaScriptCore

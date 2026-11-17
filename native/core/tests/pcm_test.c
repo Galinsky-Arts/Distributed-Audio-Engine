@@ -132,12 +132,24 @@ static void seeded_adversarial_sequences(void) {
   }
   dae_pcm_destroy(q);
 }
+static void pending_frames_track_unrendered_schedule(void) {
+  dae_pcm_queue *q=make_queue(1,64,4);float a[16],b[8];for(int i=0;i<16;++i)a[i]=0.25f;for(int i=0;i<8;++i)b[i]=0.5f;
+  assert(dae_pcm_inspect(q).pending_frames==0);
+  dae_pcm_request r=request(a,16,1,1000,1002);assert(dae_pcm_enqueue(q,&r)==DAE_PCM_OK);
+  assert(dae_pcm_inspect(q).pending_frames==16);
+  float out[8];assert(dae_pcm_render(q,1,1000,8,out,8)==DAE_PCM_OK);assert(dae_pcm_inspect(q).pending_frames==8);
+  dae_pcm_request s=request(b,8,2,1003,1004);assert(dae_pcm_enqueue(q,&s)==DAE_PCM_OK);
+  assert(dae_pcm_inspect(q).pending_frames==16);
+  assert(dae_pcm_update(q,1,1,1,1001.5,1001.5)==DAE_PCM_OK);assert(dae_pcm_inspect(q).pending_frames==12);
+  assert(dae_pcm_cancel(q,1,2)==DAE_PCM_OK);assert(dae_pcm_inspect(q).pending_frames==4);
+  dae_pcm_latch_fault(q);assert(dae_pcm_inspect(q).pending_frames==0);dae_pcm_destroy(q);
+}
 int main(void) {
   void (*tests[])(void)={copied_timeline_and_completion,fade_and_hard_deadline,envelope_only_contracts,
     stale_generations_and_callbacks,callback_rollback_latches_silence,late_callbacks_never_replay,
     input_validation_is_atomic,queue_limits_duplicates_and_overlap,invalid_configuration_and_render,
     zero_gain_and_expired_voice_completion,rendered_past_cannot_be_enqueued,
-    concurrent_render_never_blocks_or_leaks,seeded_adversarial_sequences};
+    concurrent_render_never_blocks_or_leaks,seeded_adversarial_sequences,pending_frames_track_unrendered_schedule};
   for(size_t i=0;i<sizeof(tests)/sizeof(tests[0]);++i)tests[i]();
   printf("native PCM: %zu contract cases passed (including 10000 adversarial sequences)\n",sizeof(tests)/sizeof(tests[0]));return 0;
 }

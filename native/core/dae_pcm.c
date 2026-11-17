@@ -278,8 +278,16 @@ dae_pcm_snapshot dae_pcm_inspect(dae_pcm_queue *q) {
   result.active = q->active && !fault;
   result.timing_fault = q->timing_fault || fault;
   result.rendered_until_ms = q->rendered_until;
-  for (uint32_t i = 0; i < q->config.max_voices; ++i)
-    if (q->voices[i].token) ++result.occupied_voices;
+  const double period = 1000.0 / q->config.sample_rate;
+  for (uint32_t i = 0; i < q->config.max_voices; ++i) {
+    const dae_voice *v = &q->voices[i];
+    if (!v->token) continue;
+    ++result.occupied_voices;
+    if (v->done || !result.active) continue;
+    const double end = fmin(v->stop, v->start + (double)(v->count / q->config.channels) * period);
+    const double from = fmax(v->start, q->rendered_until);
+    if (end > from) result.pending_frames += (uint64_t)ceil((end - from) / period - 0.0000001);
+  }
   pthread_mutex_unlock(&q->mutex);
   return result;
 }

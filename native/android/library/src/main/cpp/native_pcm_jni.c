@@ -67,3 +67,7 @@ JNIEXPORT jint JNICALL FN(nState)(JNIEnv *env,jclass cls,jlong handle) {
     (void)env;(void)cls;dae_pcm_snapshot s=dae_pcm_inspect(Q(handle));
     return (s.active?1:0)|(s.timing_fault?2:0);
 }
+JNIEXPORT jlong JNICALL FN(nPending)(JNIEnv *env,jclass cls,jlong handle) {
+    (void)env;(void)cls;dae_pcm_snapshot s=dae_pcm_inspect(Q(handle));
+    return s.pending_frames>(uint64_t)INT64_MAX?(jlong)INT64_MAX:(jlong)s.pending_frames;
+}
