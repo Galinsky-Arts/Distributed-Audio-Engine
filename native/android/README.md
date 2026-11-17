@@ -133,12 +133,32 @@ channel. Android WebView offers no supported binding for the pinned
 remains a separate gate. No fake crypto, temporary key, or plaintext fallback is
 installed.
 
+**Emulator evidence — November 17, 2026 (emulator, not device).** The
+`android-emulator` job in Native audio CI boots an API 34 `google_apis` x86_64
+emulator (KVM, `ReactiveCircus/android-emulator-runner` v2.37.0 pinned by commit)
+and runs `WebViewAudioBridgeEmulatorTest` (`src/androidTest`): a real WebView loads
+the bundled test page from `https://appassets.androidplatform.net` (wrapper plus
+harness served by `TrustedResources`), subscribes, starts a real `AndroidAudioHost`
+(AudioTrack + JNI C kernel), receives the exact `route-active` event, enqueues a
+300 ms synthetic 440 Hz `Float32Array` (crossing into Java `float[]`), reads
+`queueFill()` (0 < fill <= scheduled frames, then 0 after completion), receives
+`completed`, and fails closed on a Java-rejected request and on a malformed request
+in script (all later calls refused). A page at another origin cannot use the
+interface. Findings fixed on the way: the test APK needs a current target SDK
+(Android 14 otherwise shows a focus-stealing dialog), and harness loading raced.
+**Timing finding:** the emulator's simulated audio clock drifts past the host's
+production 10 ms timestamp-model limit within about a second, so with default
+settings the host stops with `CLOCK_REJOIN_REQUIRED` (fail-closed, as designed).
+The test uses a package-private 250 ms tolerance unreachable from application
+code; production keeps 10 ms. The same limit means real devices will also need
+long-term drift handling before long sessions (existing qualification gate). No
+audible output, latency or device behavior is claimed.
+
 **Verification.** `JavaScriptAudioBridge` (the platform-neutral core) has nine
 real Java/JNI/C cases in `tests/JavaScriptAudioBridgeTest.java` (owned copy and
 transfer wipe, exact event JSON, envelope contraction, queue fill, malformed
 metadata/samples, stale generations, callback failure, hostile event fields,
 ticket-bound unsubscribe/rejoin, explicit close/fault) run by `test-jni.sh`. The
 WebView adapter is compiled and linted by the Android Gradle build in CI. Neither
-job runs a WebView, emulator or device: the WebView typed-array-to-`float[]`
-coercion, main-thread hop and origin enforcement have **not** been exercised on
-an Android runtime, and no device, route-latency or audible-output claim follows.
+JVM job runs a WebView; the emulator job above does (emulator evidence only), and
+no device, route-latency or audible-output claim follows.
